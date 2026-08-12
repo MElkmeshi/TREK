@@ -11,7 +11,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.collabFeatureDisabled': 'Esse recurso está desativado para esta viagem',
   'mobileTrip.compactView': 'Visualização compacta',
   'mobileTrip.dayTitlePlaceholder': 'Título do dia',
-  'mobileTrip.exportCalendar': 'Exportar calendário',
+  'mobileTrip.export': 'Exportar',
   'mobileTrip.filesEmpty': 'Nenhum arquivo ainda',
   'mobileTrip.filesNext': 'Próximo arquivo',
   'mobileTrip.filesPrev': 'Arquivo anterior',

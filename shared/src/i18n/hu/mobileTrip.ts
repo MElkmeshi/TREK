@@ -11,7 +11,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.collabFeatureDisabled': 'Ez a funkció ki van kapcsolva ennél az utazásnál',
   'mobileTrip.compactView': 'Kompakt nézet',
   'mobileTrip.dayTitlePlaceholder': 'Nap címe',
-  'mobileTrip.exportCalendar': 'Naptár exportálása',
+  'mobileTrip.export': 'Exportálás',
   'mobileTrip.filesEmpty': 'Még nincsenek fájlok',
   'mobileTrip.filesNext': 'Következő fájl',
   'mobileTrip.filesPrev': 'Előző fájl',

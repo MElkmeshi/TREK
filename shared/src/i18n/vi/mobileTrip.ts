@@ -11,7 +11,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.collabFeatureDisabled': 'Tính năng này bị tắt cho chuyến đi này',
   'mobileTrip.compactView': 'Chế độ xem gọn',
   'mobileTrip.dayTitlePlaceholder': 'Tiêu đề ngày',
-  'mobileTrip.exportCalendar': 'Xuất lịch',
+  'mobileTrip.export': 'Xuất',
   'mobileTrip.filesEmpty': 'Chưa có tập tin nào',
   'mobileTrip.filesNext': 'Tập tin tiếp theo',
   'mobileTrip.filesPrev': 'Tập tin trước',

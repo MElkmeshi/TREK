@@ -11,7 +11,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.collabFeatureDisabled': '此功能已针对本次行程停用',
   'mobileTrip.compactView': '紧凑视图',
   'mobileTrip.dayTitlePlaceholder': '天数标题',
-  'mobileTrip.exportCalendar': '导出日历',
+  'mobileTrip.export': '导出',
   'mobileTrip.filesEmpty': '暂无文件',
   'mobileTrip.filesNext': '下一个文件',
   'mobileTrip.filesPrev': '上一个文件',

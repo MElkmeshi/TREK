@@ -11,7 +11,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.collabFeatureDisabled': 'Bu özellik bu seyahat için devre dışı',
   'mobileTrip.compactView': 'Kompakt görünüm',
   'mobileTrip.dayTitlePlaceholder': 'Gün başlığı',
-  'mobileTrip.exportCalendar': 'Takvimi Dışa Aktar',
+  'mobileTrip.export': 'Dışa aktar',
   'mobileTrip.filesEmpty': 'Henüz dosya yok',
   'mobileTrip.filesNext': 'Sonraki dosya',
   'mobileTrip.filesPrev': 'Önceki dosya',

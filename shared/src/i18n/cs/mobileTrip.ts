@@ -11,7 +11,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.collabFeatureDisabled': 'Tato funkce je pro tento výlet vypnuta',
   'mobileTrip.compactView': 'Kompaktní zobrazení',
   'mobileTrip.dayTitlePlaceholder': 'Název dne',
-  'mobileTrip.exportCalendar': 'Export kalendáře',
+  'mobileTrip.export': 'Exportovat',
   'mobileTrip.filesEmpty': 'Zatím žádné soubory',
   'mobileTrip.filesNext': 'Další soubor',
   'mobileTrip.filesPrev': 'Předchozí soubor',

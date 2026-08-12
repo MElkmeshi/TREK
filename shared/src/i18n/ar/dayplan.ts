@@ -58,6 +58,12 @@ const dayplan: TranslationStrings = {
   'dayplan.confirmed': 'مؤكد',
   'dayplan.pendingRes': 'قيد الانتظار',
   'dayplan.pdfTooltip': 'تصدير خطة اليوم بصيغة PDF',
+  'dayplan.gpxTooltip': 'تصدير كملف GPX للخرائط دون اتصال وأجهزة GPS',
+  'dayplan.gpxAll': 'الرحلة كاملة',
+  'dayplan.gpxPlaces': 'الأماكن فقط',
+  'dayplan.gpxDays': 'الأيام كمسارات',
+  'dayplan.gpxEmpty': 'لا يوجد شيء للتصدير بعد',
+  'dayplan.gpxFailed': 'فشل تصدير GPX',
   'dayplan.pdfError': 'فشل تصدير PDF',
   'dayplan.expandAll': 'Expand all days', // en-fallback
   'dayplan.collapseAll': 'Collapse all days', // en-fallback

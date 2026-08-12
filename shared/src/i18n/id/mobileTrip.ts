@@ -11,7 +11,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.collabFeatureDisabled': 'Fitur ini dinonaktifkan untuk perjalanan ini',
   'mobileTrip.compactView': 'Tampilan ringkas',
   'mobileTrip.dayTitlePlaceholder': 'Judul hari',
-  'mobileTrip.exportCalendar': 'Ekspor Kalender',
+  'mobileTrip.export': 'Ekspor',
   'mobileTrip.filesEmpty': 'Belum ada file',
   'mobileTrip.filesNext': 'File berikutnya',
   'mobileTrip.filesPrev': 'File sebelumnya',

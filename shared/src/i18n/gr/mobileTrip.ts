@@ -11,7 +11,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.collabFeatureDisabled': 'Αυτή η λειτουργία είναι απενεργοποιημένη για αυτό το ταξίδι',
   'mobileTrip.compactView': 'Συμπαγής προβολή',
   'mobileTrip.dayTitlePlaceholder': 'Τίτλος ημέρας',
-  'mobileTrip.exportCalendar': 'Εξαγωγή Ημερολογίου',
+  'mobileTrip.export': 'Εξαγωγή',
   'mobileTrip.filesEmpty': 'Δεν υπάρχουν αρχεία ακόμη',
   'mobileTrip.filesNext': 'Επόμενο αρχείο',
   'mobileTrip.filesPrev': 'Προηγούμενο αρχείο',
