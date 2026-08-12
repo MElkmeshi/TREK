@@ -172,7 +172,7 @@ export function DayPlanSidebarToolbar({
               onMouseEnter={showIcsMenu}
               onMouseLeave={hideIcsMenu}
               style={{
-                position: 'absolute', top: 'calc(100% + 4px)', right: 0,
+                position: 'absolute', top: 'calc(100% + 4px)', left: '50%', transform: 'translateX(-50%)',
                 zIndex: 200, minWidth: 160,
                 background: 'var(--bg-card, white)',
                 borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
@@ -229,29 +229,28 @@ export function DayPlanSidebarToolbar({
           onMouseEnter={showGpxMenu}
           onMouseLeave={hideGpxMenu}
         >
-          <Tooltip label={t('dayplan.gpxTooltip')} placement="bottom">
-            <button
-              aria-haspopup="menu"
-              aria-expanded={gpxMenuVisible}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '5px 10px', borderRadius: 8,
-                border: '1px solid var(--border-primary)', background: 'none',
-                color: 'var(--text-muted)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
-            >
-              <FileDown size={13} strokeWidth={2} />
-              GPX
-            </button>
-          </Tooltip>
+          <button
+            aria-haspopup="menu"
+            aria-expanded={gpxMenuVisible}
+            aria-label={t('dayplan.gpxTooltip')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 10px', borderRadius: 8,
+              border: '1px solid var(--border-primary)', background: 'none',
+              color: 'var(--text-muted)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            <FileDown size={13} strokeWidth={2} />
+            GPX
+          </button>
           {gpxMenuVisible && (
             <div
               role="menu"
               onMouseEnter={showGpxMenu}
               onMouseLeave={hideGpxMenu}
               style={{
-                position: 'absolute', top: 'calc(100% + 4px)', right: 0,
+                position: 'absolute', top: 'calc(100% + 4px)', left: '50%', transform: 'translateX(-50%)',
                 zIndex: 200, minWidth: 190,
                 background: 'var(--bg-card, white)',
                 borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
