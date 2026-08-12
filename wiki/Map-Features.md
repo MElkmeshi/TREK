@@ -40,6 +40,18 @@ Any track that carries a colour — assigned at import or picked by you — is d
 
 Clicking a line on the map selects that track and opens its details — useful when the start markers are still clustered together. In the places list, each track shows a short stroke in the colour it is drawn in, which is how you tell which line belongs to which entry.
 
+### Exporting a trip as GPX
+
+The **GPX** button in the day sidebar's toolbar, next to PDF and ICS, hands the trip back as a `.gpx` file for offline maps such as Organic Maps, for a handheld GPS, or for any other tool that reads the format. On a phone the same download sits in the trip's **Export** sheet, under "More".
+
+Three scopes:
+
+- **Whole trip** — every place as a waypoint, every imported track as a track, and every planned day as a route.
+- **Places only** — the same without the day routes, for when you just want the pins on an offline map.
+- **Days as routes** — only the planned days, each one a route through its stops in the order you arranged them. This is the one that puts a day's plan on a device you can follow.
+
+Places carry their description and address, and their category travels along as the GPX symbol, so devices that support it can show a different icon per kind of stop. Elevation is written back for tracks that were imported with it. Exporting is a read, so every trip member can do it, not only those who may edit.
+
 ## Route time pills
 
 At zoom level 12 or higher, small pill-shaped labels appear between consecutive places and show the estimated **walking time** and **driving time** for each segment. Below zoom 12 they are hidden to keep the map clean.
