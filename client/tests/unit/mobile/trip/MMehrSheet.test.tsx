@@ -105,7 +105,7 @@ describe('MMehrSheet', () => {
   it('FE-MOB-MEHR-009: the action rows open the share, export and edit sheets', () => {
     const { shell } = renderSheet()
     fireEvent.click(screen.getByRole('button', { name: 'Share Trip' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Export Calendar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }))
     fireEvent.click(screen.getByRole('button', { name: 'Edit Trip' }))
     expect(shell.openSheet).toHaveBeenNthCalledWith(1, 'members')
     expect(shell.openSheet).toHaveBeenNthCalledWith(2, 'export')

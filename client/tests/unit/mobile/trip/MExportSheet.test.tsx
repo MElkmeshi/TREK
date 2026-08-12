@@ -60,9 +60,10 @@ describe('MExportSheet', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('FE-MOB-EXPSH-002: lists the three export routes and names the ics after the trip', () => {
+  it('FE-MOB-EXPSH-002: lists the export routes and names the ics after the trip', () => {
     renderSheet()
-    expect(screen.getByRole('dialog', { name: 'Export Calendar' })).toBeInTheDocument()
+    // Renamed from "Export Calendar": the sheet carries the PDF and GPX exports too.
+    expect(screen.getByRole('dialog', { name: 'Export' })).toBeInTheDocument()
     expect(screen.getByText('PDF')).toBeInTheDocument()
     expect(screen.getByText('Export day plan as PDF')).toBeInTheDocument()
     expect(screen.getByText('Download .ics')).toBeInTheDocument()
