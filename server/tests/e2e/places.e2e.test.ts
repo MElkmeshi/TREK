@@ -38,7 +38,9 @@ const { db } = vi.hoisted(() => {
   tmp.exec(`CREATE TABLE place_ratings (place_id INTEGER NOT NULL, user_id INTEGER NOT NULL, rating INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP, UNIQUE(place_id, user_id));`);
   // The assignment=unassigned/assigned filters join these.
-  tmp.exec('CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, day_number INTEGER, date TEXT);');
+  tmp.exec('CREATE TABLE days (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL, day_number INTEGER, date TEXT, title TEXT);');
+  // The GPX export reads the trip title for <metadata> and the filename.
+  tmp.exec('CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT);');
   tmp.exec(`CREATE TABLE day_assignments (id INTEGER PRIMARY KEY AUTOINCREMENT, day_id INTEGER NOT NULL,
     place_id INTEGER NOT NULL, order_index INTEGER DEFAULT 0);`);
   // reclaimPlaceImage ref-counts an uploaded thumbnail across both tables.
@@ -106,7 +108,7 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
   });
 
   beforeEach(() => {
-    db.exec('DELETE FROM places; DELETE FROM place_tags; DELETE FROM place_ratings; DELETE FROM day_assignments; DELETE FROM days;');
+    db.exec('DELETE FROM trips; DELETE FROM places; DELETE FROM place_tags; DELETE FROM place_ratings; DELETE FROM day_assignments; DELETE FROM days;');
     canAccessTrip.mockReturnValue({ id: 5, user_id: 1 });
     checkPermission.mockReturnValue(true);
   });
@@ -290,6 +292,76 @@ describe('Places e2e (real auth guard + temp SQLite)', () => {
     const del = await request(server).delete('/api/trips/5/places/9').set('Cookie', sessionCookie(1));
     expect(del.status).toBe(404);
     expect(del.body).toEqual({ error: 'Trip not found' });
+  });
+
+  // ── GPX export ────────────────────────────────────────────────────────────
+  describe('GET export.gpx (#1442)', () => {
+    const seedTrip = () => {
+      db.prepare("INSERT INTO trips (id, title) VALUES (5, 'Alpine week')").run();
+      db.prepare("INSERT INTO places (id, trip_id, name, lat, lng) VALUES (1, 5, 'Trailhead', 47.1, 11.2)").run();
+      db.prepare("INSERT INTO places (id, trip_id, name, lat, lng, route_geometry) VALUES (2, 5, 'Ridge', 47.2, 11.3, '[[47.2,11.3],[47.25,11.35]]')").run();
+      db.prepare("INSERT INTO days (id, trip_id, day_number, date, title) VALUES (1, 5, 1, '2026-05-01', 'Warm up')").run();
+      db.prepare('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (1, 1, 0), (1, 2, 1)').run();
+    };
+
+    it('serves the trip as an attachment named after it', async () => {
+      seedTrip();
+      const res = await request(server).get('/api/trips/5/places/export.gpx').set('Cookie', sessionCookie(1));
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('application/gpx+xml');
+      expect(res.headers['content-disposition']).toBe('attachment; filename="Alpine-week.gpx"');
+      expect(res.text).toContain('<name>Trailhead</name>');
+      // Self-closing here: these points carry no elevation.
+      expect(res.text).toContain('<trkpt lat="47.2" lon="11.3"');
+      expect(res.text).toContain('<name>1. Warm up</name>');
+    });
+
+    it('narrows the document to the requested parts', async () => {
+      seedTrip();
+      const res = await request(server)
+        .get('/api/trips/5/places/export.gpx?waypoints=false&dayRoutes=false')
+        .set('Cookie', sessionCookie(1));
+
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('<trk>');
+      expect(res.text).not.toContain('<wpt');
+      expect(res.text).not.toContain('<rte>');
+    });
+
+    it('400s when every part was switched off', async () => {
+      seedTrip();
+      const res = await request(server)
+        .get('/api/trips/5/places/export.gpx?waypoints=false&tracks=false&dayRoutes=false')
+        .set('Cookie', sessionCookie(1));
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'No export types selected' });
+    });
+
+    it('404s an empty trip rather than handing over a file that imports as nothing', async () => {
+      db.prepare("INSERT INTO trips (id, title) VALUES (5, 'Nothing here')").run();
+      const res = await request(server).get('/api/trips/5/places/export.gpx').set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual({ error: 'Nothing to export' });
+    });
+
+    it('404s a trip the caller cannot reach, and 401s without a cookie', async () => {
+      seedTrip();
+      canAccessTrip.mockReturnValue(undefined);
+      const res = await request(server).get('/api/trips/5/places/export.gpx').set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(404);
+      expect(res.body).toEqual({ error: 'Trip not found' });
+
+      expect((await request(server).get('/api/trips/5/places/export.gpx')).status).toBe(401);
+    });
+
+    it('is a read: no place_edit permission required', async () => {
+      seedTrip();
+      checkPermission.mockReturnValue(false);
+      const res = await request(server).get('/api/trips/5/places/export.gpx').set('Cookie', sessionCookie(1));
+      expect(res.status).toBe(200);
+    });
   });
 
   // The reason places keeps its inline checks on the write routes: a guard runs

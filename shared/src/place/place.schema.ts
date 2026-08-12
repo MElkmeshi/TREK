@@ -174,6 +174,18 @@ export const placeImportGpxRequestSchema = z.object({
 });
 export type PlaceImportGpxRequest = z.infer<typeof placeImportGpxRequestSchema>;
 
+/**
+ * GPX export (query string), the mirror of the import flags. Every field optional
+ * and string-typed because these arrive as query parameters; an omitted flag
+ * defaults to true server-side, so a bare `export.gpx` returns everything.
+ */
+export const placeExportGpxRequestSchema = z.object({
+  waypoints: z.string().optional(),
+  tracks: z.string().optional(),
+  dayRoutes: z.string().optional(),
+});
+export type PlaceExportGpxRequest = z.infer<typeof placeExportGpxRequestSchema>;
+
 /** KML/KMZ import (multipart/form-data); same string-field contract as GPX. */
 export const placeImportMapRequestSchema = z.object({
   importPoints: z.string().optional(),

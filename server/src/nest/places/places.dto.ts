@@ -6,6 +6,7 @@ import {
   placeImportGpxRequestSchema,
   placeImportListRequestSchema,
   placeImportMapRequestSchema,
+  placeExportGpxRequestSchema,
   placeRatingRequestSchema,
   placeUpdateRequestSchema,
 } from '@trek/shared';
@@ -32,3 +33,4 @@ export class PlaceBulkUpdateDto extends createZodDto(placeBulkUpdateRequestSchem
 export class PlaceImportListDto extends createZodDto(placeImportListRequestSchema) {}
 export class PlaceImportGpxDto extends createZodDto(placeImportGpxRequestSchema) {}
 export class PlaceImportMapDto extends createZodDto(placeImportMapRequestSchema) {}
+export class PlaceExportGpxDto extends createZodDto(placeExportGpxRequestSchema) {}

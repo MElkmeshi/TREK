@@ -10,11 +10,13 @@ import {
   Post,
   Put,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { memoryStorage } from 'multer';
@@ -31,6 +33,7 @@ import {
   PlaceBulkDeleteDto,
   PlaceBulkUpdateDto,
   PlaceCreateDto,
+  PlaceExportGpxDto,
   PlaceImportGpxDto,
   PlaceImportListDto,
   PlaceImportMapDto,
@@ -163,6 +166,34 @@ export class PlacesController {
       this.places.broadcast(tripId, 'place:created', { place }, socketId);
     }
     return { places: result.places, count: result.count, skipped: result.skipped };
+  }
+
+  /**
+   * The trip as GPX, for Organic Maps, a handheld or anything else that reads it.
+   * A read, so viewing the trip is enough; no edit permission required. Declared
+   * before the `:id` routes so the literal path wins.
+   */
+  @Get('export.gpx')
+  exportGpx(
+    @CurrentUser() user: User,
+    @Param('tripId') tripId: string,
+    @Query() query: PlaceExportGpxDto,
+    @Res() res: Response,
+  ) {
+    this.requireTrip(tripId, user);
+    const waypoints = parseBool(query.waypoints, true);
+    const tracks = parseBool(query.tracks, true);
+    const dayRoutes = parseBool(query.dayRoutes, true);
+    if (!waypoints && !tracks && !dayRoutes) {
+      throw new HttpException({ error: 'No export types selected' }, 400);
+    }
+    const result = this.places.exportGpx(tripId, { waypoints, tracks, dayRoutes });
+    if (!result) {
+      throw new HttpException({ error: 'Nothing to export' }, 404);
+    }
+    res.setHeader('Content-Type', 'application/gpx+xml; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.send(result.gpx);
   }
 
   @Post('import/map')

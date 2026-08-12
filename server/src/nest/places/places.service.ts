@@ -19,6 +19,8 @@ import {
   parsePlacemarkNode,
   resolveCategoryIdForFolder,
 } from './kml-import.helpers';
+import { buildGpx, gpxFilename } from './gpx-export.helpers';
+import type { GpxExportDay, GpxExportOptions, GpxExportPlace } from './gpx-export.helpers';
 import { UnsplashService } from '../unsplash/unsplash.service';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { type UpdateConflict, isUpdateConflict } from '../common/conflictResult';
@@ -469,6 +471,54 @@ export class PlacesService {
 
   importGpx(tripId: string, fileBuffer: Buffer, opts: GpxImportOptions = {}): GpxImportResult | null {
     return this.colorizeImportedTracks(tripId, this.importGpxRows(tripId, fileBuffer, opts));
+  }
+
+  /**
+   * The trip as a GPX document, the mirror of importGpx. Places without geometry
+   * become waypoints, places carrying route_geometry become tracks, and each planned
+   * day becomes a route of its stops in order, which is the part that has no import
+   * counterpart and the reason to bother: a planned day on a handheld.
+   *
+   * Returns null when the selection yields nothing, so the caller answers 404 rather
+   * than handing over a file that imports as nothing on the other end.
+   */
+  exportGpx(tripId: string, opts: GpxExportOptions = {}): { gpx: string; filename: string } | null {
+    const trip = this.dbs.get<{ title: string }>('SELECT title FROM trips WHERE id = ?', tripId);
+    if (!trip) return null;
+
+    const places = this.dbs.all<GpxExportPlace>(`
+      SELECT p.name, p.description, p.address, p.lat, p.lng, p.route_geometry, c.name AS category
+        FROM places p
+        LEFT JOIN categories c ON c.id = p.category_id
+       WHERE p.trip_id = ?
+       ORDER BY p.id
+    `, tripId);
+
+    // One row per stop, ordered the way the day plan draws it, then folded into days.
+    const stops = this.dbs.all<{
+      day_number: number; date: string | null; title: string | null;
+      name: string; lat: number; lng: number;
+    }>(`
+      SELECT d.day_number, d.date, d.title, p.name, p.lat, p.lng
+        FROM days d
+        JOIN day_assignments da ON da.day_id = d.id
+        JOIN places p ON p.id = da.place_id
+       WHERE d.trip_id = ? AND p.lat IS NOT NULL AND p.lng IS NOT NULL
+       ORDER BY d.day_number, da.order_index
+    `, tripId);
+
+    const days = new Map<number, GpxExportDay>();
+    for (const stop of stops) {
+      let day = days.get(stop.day_number);
+      if (!day) {
+        day = { dayNumber: stop.day_number, date: stop.date, title: stop.title, points: [] };
+        days.set(stop.day_number, day);
+      }
+      day.points.push({ name: stop.name, lat: stop.lat, lng: stop.lng });
+    }
+
+    const gpx = buildGpx({ tripTitle: trip.title, places, days: [...days.values()] }, opts);
+    return gpx ? { gpx, filename: gpxFilename(trip.title) } : null;
   }
 
   private importGpxRows(tripId: string, fileBuffer: Buffer, opts: GpxImportOptions = {}): GpxImportResult | null {
