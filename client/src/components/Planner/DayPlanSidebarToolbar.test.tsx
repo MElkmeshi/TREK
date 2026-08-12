@@ -372,4 +372,83 @@ describe('DayPlanSidebarToolbar', () => {
     await user.click(screen.getByText('dayplan.pdf'))
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('dayplan.pdfError: boom'))
   })
+
+  // ── GPX export (#1442) ────────────────────────────────────────────────────
+  describe('GPX menu', () => {
+    let clickedHref: string | null
+
+    beforeEach(() => {
+      clickedHref = null
+      // jsdom has neither of these, and an anchor click would navigate.
+      globalThis.URL.createObjectURL = vi.fn(() => 'blob:gpx')
+      globalThis.URL.revokeObjectURL = vi.fn()
+      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+        clickedHref = this.href
+      })
+    })
+
+    afterEach(() => vi.restoreAllMocks())
+
+    const okResponse = () => ({ ok: true, status: 200, blob: async () => new Blob(['<gpx/>']) }) as unknown as Response
+
+    it('FE-PLANNER-DPTOOLBAR-025: the menu offers the three scopes on hover', async () => {
+      const user = userEvent.setup()
+      render(<DayPlanSidebarToolbar {...makeProps()} />)
+      expect(screen.queryByText('dayplan.gpxAll')).not.toBeInTheDocument()
+      await user.hover(screen.getByText('GPX'))
+      expect(screen.getByText('dayplan.gpxAll')).toBeInTheDocument()
+      expect(screen.getByText('dayplan.gpxPlaces')).toBeInTheDocument()
+      expect(screen.getByText('dayplan.gpxDays')).toBeInTheDocument()
+    })
+
+    it('FE-PLANNER-DPTOOLBAR-026: each scope asks the server for exactly its own selection', async () => {
+      const user = userEvent.setup()
+      const fetchMock = vi.fn(async () => okResponse())
+      vi.stubGlobal('fetch', fetchMock)
+      render(<DayPlanSidebarToolbar {...makeProps()} />)
+
+      for (const [label, expected] of [
+        ['dayplan.gpxAll', '/api/trips/1/places/export.gpx'],
+        ['dayplan.gpxPlaces', '/api/trips/1/places/export.gpx?dayRoutes=false'],
+        ['dayplan.gpxDays', '/api/trips/1/places/export.gpx?waypoints=false&tracks=false'],
+      ] as const) {
+        await user.hover(screen.getByText('GPX'))
+        await user.click(screen.getByText(label))
+        await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(expected, { credentials: 'include' }))
+        fetchMock.mockClear()
+      }
+    })
+
+    it('FE-PLANNER-DPTOOLBAR-027: a download names the file after the trip', async () => {
+      const user = userEvent.setup()
+      vi.stubGlobal('fetch', vi.fn(async () => okResponse()))
+      render(<DayPlanSidebarToolbar {...makeProps()} />)
+      await user.hover(screen.getByText('GPX'))
+      await user.click(screen.getByText('dayplan.gpxAll'))
+      await waitFor(() => expect(clickedHref).toBe('blob:gpx'))
+      expect(globalThis.URL.revokeObjectURL).toHaveBeenCalled()
+    })
+
+    it('FE-PLANNER-DPTOOLBAR-028: an empty trip says so instead of reporting a failure', async () => {
+      const user = userEvent.setup()
+      const toast = makeToast()
+      vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 404 }) as unknown as Response))
+      render(<DayPlanSidebarToolbar {...makeProps({ toast })} />)
+      await user.hover(screen.getByText('GPX'))
+      await user.click(screen.getByText('dayplan.gpxAll'))
+      await waitFor(() => expect(toast.info).toHaveBeenCalledWith('dayplan.gpxEmpty'))
+      expect(toast.error).not.toHaveBeenCalled()
+      expect(clickedHref).toBeNull()
+    })
+
+    it('FE-PLANNER-DPTOOLBAR-029: a real failure toasts the error', async () => {
+      const user = userEvent.setup()
+      const toast = makeToast()
+      vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500 }) as unknown as Response))
+      render(<DayPlanSidebarToolbar {...makeProps({ toast })} />)
+      await user.hover(screen.getByText('GPX'))
+      await user.click(screen.getByText('dayplan.gpxAll'))
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith('dayplan.gpxFailed'))
+    })
+  })
 })

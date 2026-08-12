@@ -1,11 +1,23 @@
 import React, { useState, useRef } from 'react'
-import { ChevronsDownUp, ChevronsUpDown, FileDown, Undo2, ArrowUpDown, CalendarPlus, Route as RouteIcon } from 'lucide-react'
+import { ChevronsDownUp, ChevronsUpDown, FileDown, Undo2, ArrowUpDown, CalendarPlus, MapPin, Route as RouteIcon } from 'lucide-react'
 import { DayReorderPopup } from './DayReorderPopup'
 import Tooltip from '../shared/Tooltip'
 import { useToast } from '../shared/Toast'
 import { IcsSubscribeModal } from './IcsSubscribeModal'
 import { isRoutableReservation } from '../../utils/reservationRoutes'
 import type { Trip, Day, Place, Category, AssignmentsMap, Reservation, DayNote } from '../../types'
+
+/**
+ * What a GPX download can carry. Worded by what someone wants on their device
+ * rather than by the GPX element it maps to: "everything", "just the places" for
+ * an offline map, "just the days" for following a plan. An omitted flag defaults
+ * to true server-side, so the first entry needs no query at all.
+ */
+const GPX_SCOPES = [
+  { key: 'all', query: '', labelKey: 'dayplan.gpxAll', icon: FileDown },
+  { key: 'places', query: '?dayRoutes=false', labelKey: 'dayplan.gpxPlaces', icon: MapPin },
+  { key: 'days', query: '?waypoints=false&tracks=false', labelKey: 'dayplan.gpxDays', icon: RouteIcon },
+] as const
 
 interface DayPlanSidebarToolbarProps {
   tripId: number
@@ -54,6 +66,8 @@ export function DayPlanSidebarToolbar({
   const [subscribeOpen, setSubscribeOpen] = useState(false)
   const icsMenuTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [icsMenuVisible, setIcsMenuVisible] = useState(false)
+  const gpxMenuTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [gpxMenuVisible, setGpxMenuVisible] = useState(false)
 
   const showIcsMenu = () => {
     if (icsMenuTimeoutRef.current) clearTimeout(icsMenuTimeoutRef.current)
@@ -65,6 +79,32 @@ export function DayPlanSidebarToolbar({
       setIcsMenuVisible(false)
       setIcsHover(false)
     }, 120)
+  }
+
+  const showGpxMenu = () => {
+    if (gpxMenuTimeoutRef.current) clearTimeout(gpxMenuTimeoutRef.current)
+    setGpxMenuVisible(true)
+  }
+  const hideGpxMenu = () => {
+    gpxMenuTimeoutRef.current = setTimeout(() => setGpxMenuVisible(false), 120)
+  }
+
+  const downloadGpx = async (query: string) => {
+    setGpxMenuVisible(false)
+    try {
+      const res = await fetch(`/api/trips/${tripId}/places/export.gpx${query}`, { credentials: 'include' })
+      // 404 here means the selection is empty, which is worth its own message:
+      // "nothing happened" and "the download broke" look identical otherwise.
+      if (res.status === 404) { toast.info(t('dayplan.gpxEmpty')); return }
+      if (!res.ok) throw new Error()
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${trip?.title || 'trip'}.gpx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch { toast.error(t('dayplan.gpxFailed')) }
   }
 
   const menuItemStyle: React.CSSProperties = {
@@ -178,6 +218,60 @@ export function DayPlanSidebarToolbar({
                   Subscribe to calendar
                 </button>
               )}
+            </div>
+          )}
+        </div>
+        {/* GPX — the counterpart to the GPX import in the places sidebar, sitting
+            with the other exports rather than with the importer. Same hover-menu
+            shape as ICS beside it. */}
+        <div
+          style={{ position: 'relative', flexShrink: 0 }}
+          onMouseEnter={showGpxMenu}
+          onMouseLeave={hideGpxMenu}
+        >
+          <Tooltip label={t('dayplan.gpxTooltip')} placement="bottom">
+            <button
+              aria-haspopup="menu"
+              aria-expanded={gpxMenuVisible}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '5px 10px', borderRadius: 8,
+                border: '1px solid var(--border-primary)', background: 'none',
+                color: 'var(--text-muted)', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 500,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              <FileDown size={13} strokeWidth={2} />
+              GPX
+            </button>
+          </Tooltip>
+          {gpxMenuVisible && (
+            <div
+              role="menu"
+              onMouseEnter={showGpxMenu}
+              onMouseLeave={hideGpxMenu}
+              style={{
+                position: 'absolute', top: 'calc(100% + 4px)', right: 0,
+                zIndex: 200, minWidth: 190,
+                background: 'var(--bg-card, white)',
+                borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                border: '1px solid var(--border-faint, #e5e7eb)',
+                overflow: 'hidden',
+              }}
+            >
+              {GPX_SCOPES.map(scope => (
+                <button
+                  key={scope.key}
+                  role="menuitem"
+                  onClick={() => downloadGpx(scope.query)}
+                  style={menuItemStyle}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-hover, #f3f4f6)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' }}
+                >
+                  <scope.icon size={12} strokeWidth={2} />
+                  {t(scope.labelKey)}
+                </button>
+              ))}
             </div>
           )}
         </div>
