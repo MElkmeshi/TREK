@@ -33,6 +33,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     }
 
+    // MARK: - Push notifications
+    //
+    // @capacitor/push-notifications does not swizzle the APNs callbacks; it listens
+    // on NotificationCenter instead, so these two forwarders are mandatory. Without
+    // them PushNotifications.register() resolves and then nothing ever arrives —
+    // neither the `registration` nor the `registrationError` listener fires, which
+    // makes it look like a server problem rather than a missing 6 lines here.
+
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+    }
+
     func application(_ application: UIApplication,
                      configurationForConnecting connectingSceneSession: UISceneSession,
                      options: UIScene.ConnectionOptions) -> UISceneConfiguration {

@@ -62,7 +62,13 @@ captures/
 .cxx/
 
 # Google Services (e.g. APIs or Firebase)
-# google-services.json
+# Deliberately ignored: this file pins the build to one Firebase project.
+# Committing it would make every fork's builds register against the upstream
+# FCM project, and rotating the project would become a repo change. Official
+# builds inject it from a CI secret; see google-services.json.example.
+# app/build.gradle already tolerates its absence (push is simply inert).
+google-services.json
+app/google-services.json
 
 # Freeline
 freeline.py
