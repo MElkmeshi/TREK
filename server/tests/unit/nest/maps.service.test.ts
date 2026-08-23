@@ -616,6 +616,69 @@ describe('resolveGoogleMapsUrl coordinate extraction (ReDoS guards)', () => {
     expect(result.lng).toBeCloseTo(-74.0445, 3);
   });
 
+  it('MAPS-CID-003: does not read the page body of a non-Google resolved URL', async () => {
+    // The body branch used to run for any host, turning resolve-url into an
+    // authenticated outbound GET primitive.
+    const fetchMock = vi.fn(async (u: string) => {
+      if (u.includes('nominatim')) {
+        return { ok: true, json: async () => ({ display_name: 'x', name: null, address: {} }) };
+      }
+      if (u.includes('goo.gl')) return { url: 'https://internal.example.com/status' };
+      return { url: 'https://internal.example.com/status', text: async () => 'x!3d40.6892!4d-74.0445y' };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(svc.resolveGoogleMapsUrl('https://goo.gl/maps/abc123')).rejects.toMatchObject({ status: 400 });
+    // Only the redirect-following call went out; the page body was never fetched.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    'https://www.google.de/maps?cid=999',
+    'https://maps.google.co.uk/?cid=999',
+    'https://google.com.au/maps?cid=999',
+  ])('MAPS-CID-003b: still reads the page body of a country domain (%s)', async (link) => {
+    // Google Maps answers on every ccTLD, and those links carry no coordinates
+    // to fall back on — a host allow-list of .com spellings drops them.
+    const fetchMock = vi.fn(async (u: string) => {
+      if (u.includes('nominatim')) {
+        return { ok: true, json: async () => ({ display_name: 'Berlin, DE', name: null, address: {} }) };
+      }
+      return { url: link, text: async () => 'x!3d52.5163!4d13.3777y' };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await svc.resolveGoogleMapsUrl(link);
+    expect(result.lat).toBeCloseTo(52.5163, 3);
+    expect(result.lng).toBeCloseTo(13.3777, 3);
+  });
+
+  it('MAPS-CID-003c: a host that only looks like Google is still not read', async () => {
+    const fetchMock = vi.fn(async (u: string) => {
+      if (u.includes('nominatim')) {
+        return { ok: true, json: async () => ({ display_name: 'x', name: null, address: {} }) };
+      }
+      return { url: 'https://google.evil.com/maps', text: async () => 'x!3d40.6892!4d-74.0445y' };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(svc.resolveGoogleMapsUrl('https://google.evil.com/maps?cid=999')).rejects.toMatchObject({ status: 400 });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('MAPS-CID-004: skips a page body that declares more than the size cap', async () => {
+    const fetchMock = vi.fn(async (u: string) => {
+      if (u.includes('cid=')) return { url: 'https://www.google.com/maps/place/Somewhere' };
+      return {
+        url: 'https://www.google.com/maps/place/Somewhere',
+        headers: { get: (h: string) => (h === 'content-length' ? String(50_000_000) : null) },
+        text: async () => 'x!3d40.6892!4d-74.0445y',
+      };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(svc.resolveGoogleMapsUrl('https://www.google.com/maps?cid=999')).rejects.toMatchObject({ status: 400 });
+  });
+
   it('MAPS-024 (ReDoS): /@(-?\\d+\\.?\\d*),(-?\\d+\\.?\\d*)/ on adversarial input < 500ms of CPU', () => {
     const adversarial = '/@' + '1'.repeat(10000) + '.';
     expect(cpuMillis(() => { adversarial.match(/@(-?\d+\.?\d*),(-?\d+\.?\d*)/); })).toBeLessThan(500);

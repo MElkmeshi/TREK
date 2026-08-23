@@ -1,3 +1,4 @@
+import { readCappedJson } from '../../utils/cappedFetch';
 
 // Open-Meteo sits on the request path as a third party: without a deadline a hung
 // connection holds the caller until the socket gives up on its own. Every other
@@ -17,6 +18,42 @@ function hourIndexFromTime(time?: string): number | null {
   if (!m) return null;
   const hour = Number(m[1]);
   return Number.isInteger(hour) && hour >= 0 && hour <= 23 ? hour : null;
+}
+
+// A day of hourly series is a few kilobytes; a megabyte means the provider is
+// misbehaving, not that the trip got longer.
+const MAX_WEATHER_BYTES = 1024 * 1024;
+
+/**
+ * Open-Meteo GET with the shared deadline and the size cap.
+ *
+ * The body is read through the cap rather than buffered with .json(): Open-Meteo
+ * answers chunked, so there is no content-length to check and a declared-length
+ * test alone would let any amount of data through. The caller still gets the
+ * response, because the status and `reason` are what shape its error.
+ */
+async function fetchOpenMeteo(url: string): Promise<{ response: Response; data: OpenMeteoForecast }> {
+  const response = await fetch(url, { signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS) });
+  const data = await readCappedJson<OpenMeteoForecast>(response, MAX_WEATHER_BYTES);
+  if (!data) {
+    throw new ApiError(502, 'Open-Meteo API error');
+  }
+  return { response, data };
+}
+
+/**
+ * lat/lng arrive as raw query strings and get interpolated straight into the
+ * Open-Meteo URL. The MCP tool already coerces them with z.number(); the REST
+ * route has no contract, so the boundary check lives here and covers both.
+ */
+function coord(value: string, max: number, label: string): number {
+  // Number('') and Number('  ') are 0, which would silently geolocate the Gulf
+  // of Guinea instead of failing, so an empty value is rejected outright.
+  const n = String(value ?? '').trim() === '' ? NaN : Number(value);
+  if (!Number.isFinite(n) || Math.abs(n) > max) {
+    throw new ApiError(400, `Invalid ${label}`);
+  }
+  return n;
 }
 
 // ── Interfaces ──────────────────────────────────────────────────────────
@@ -212,8 +249,7 @@ async function _getWeatherImpl(
     // Forecast range (-1 .. +16 days)
     if (diffDays >= -1 && diffDays <= 16) {
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=16`;
-      const response = await fetch(url, { signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS) });
-      const data = await response.json() as OpenMeteoForecast;
+      const { response, data } = await fetchOpenMeteo(url);
 
       if (!response.ok || data.error) {
         throw new ApiError(response.status || 500, data.reason || 'Open-Meteo API error');
@@ -250,8 +286,7 @@ async function _getWeatherImpl(
         ? '&hourly=temperature_2m,weathercode'
         : '';
       const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${dateStr}&end_date=${dateStr}&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum${hourParam}&timezone=auto`;
-      const response = await fetch(url, { signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS) });
-      const data = await response.json() as OpenMeteoForecast;
+      const { response, data } = await fetchOpenMeteo(url);
 
       if (!response.ok || data.error) {
         throw new ApiError(response.status || 500, data.reason || 'Open-Meteo Archive API error');
@@ -307,8 +342,7 @@ async function _getWeatherImpl(
       const endStr = endDate.toISOString().slice(0, 10);
 
       const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=${startStr}&end_date=${endStr}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`;
-      const response = await fetch(url, { signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS) });
-      const data = await response.json() as OpenMeteoForecast;
+      const { response, data } = await fetchOpenMeteo(url);
 
       if (!response.ok || data.error) {
         throw new ApiError(response.status || 500, data.reason || 'Open-Meteo Climate API error');
@@ -360,8 +394,7 @@ async function _getWeatherImpl(
   if (cached) return cached;
 
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weathercode&timezone=auto`;
-  const response = await fetch(url, { signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS) });
-  const data = await response.json() as OpenMeteoForecast;
+  const { response, data } = await fetchOpenMeteo(url);
 
   if (!response.ok || data.error) {
     throw new ApiError(response.status || 500, data.reason || 'Open-Meteo API error');
@@ -382,13 +415,15 @@ async function _getWeatherImpl(
 }
 
 export async function getWeather(
-  lat: string,
-  lng: string,
+  rawLat: string,
+  rawLng: string,
   date: string | undefined,
   lang: string,
   /** HH:MM of the moment being asked about. Only the archive path can use it. */
   time?: string,
 ): Promise<WeatherResult> {
+  const lat = String(coord(rawLat, 90, 'latitude'));
+  const lng = String(coord(rawLng, 180, 'longitude'));
   const ck = cacheKey(lat, lng, date ? `${date}T${time ?? ''}` : date);
   const cached = getCached(ck);
   if (cached) return cached;
@@ -433,8 +468,7 @@ async function _getDetailedWeatherImpl(
       + `&hourly=temperature_2m,precipitation,weathercode,windspeed_10m,relativehumidity_2m`
       + `&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum,windspeed_10m_max,sunrise,sunset`
       + `&timezone=auto`;
-    const response = await fetch(url, { signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS) });
-    const data = await response.json() as OpenMeteoForecast;
+    const { response, data } = await fetchOpenMeteo(url);
 
     if (!response.ok || data.error) {
       throw new ApiError(response.status || 500, data.reason || 'Open-Meteo Climate API error');
@@ -496,8 +530,7 @@ async function _getDetailedWeatherImpl(
     + `&daily=temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset,precipitation_probability_max,precipitation_sum,windspeed_10m_max`
     + `&timezone=auto&start_date=${dateStr}&end_date=${dateStr}`;
 
-  const response = await fetch(url, { signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS) });
-  const data = await response.json() as OpenMeteoForecast;
+  const { response, data } = await fetchOpenMeteo(url);
 
   if (!response.ok || data.error) {
     throw new ApiError(response.status || 500, data.reason || 'Open-Meteo API error');
@@ -555,11 +588,13 @@ async function _getDetailedWeatherImpl(
 }
 
 export async function getDetailedWeather(
-  lat: string,
-  lng: string,
+  rawLat: string,
+  rawLng: string,
   date: string,
   lang: string,
 ): Promise<WeatherResult> {
+  const lat = String(coord(rawLat, 90, 'latitude'));
+  const lng = String(coord(rawLng, 180, 'longitude'));
   const ck = `detailed_${cacheKey(lat, lng, date)}`;
   const cached = getCached(ck);
   if (cached) return cached;

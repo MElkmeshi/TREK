@@ -111,11 +111,16 @@ export default function BackgroundTasksWidget() {
             else if (s.status === 'error') setError(task.id, task.tripId, s.error ?? 'error')
             else setProgress(task.id, task.tripId, s.done, s.total)
           })
-          .catch(() => {})
+          .catch((err: { response?: { status?: number } }) => {
+            // The server 404s a job once it has expired (or after a restart). Nothing is
+            // ever coming, so end the card instead of spinning and re-polling forever.
+            // Not the parse-failure message — the file was fine, the job is just gone.
+            if (err?.response?.status === 404) setError(task.id, task.tripId, t('common.unknownError'))
+          })
       }
     }, 5000)
     return () => clearInterval(iv)
-  }, [tasks, setProgress, setDone, setError])
+  }, [tasks, setProgress, setDone, setError, t])
 
   if (tasks.length === 0) return null
 

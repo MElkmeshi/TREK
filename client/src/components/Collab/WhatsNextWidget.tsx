@@ -5,6 +5,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
 import { MapPin, Clock, Users, Sparkles } from 'lucide-react'
 import EmptyState from '../shared/EmptyState'
+import { localToday } from '../Planner/today'
 
 function formatTime(timeStr, is12h) {
   if (!timeStr) return ''
@@ -19,9 +20,10 @@ function formatTime(timeStr, is12h) {
 
 function formatDayLabel(date, t, locale) {
   const now = new Date()
-  const nowDate = now.toISOString().split('T')[0]
-  const tomorrowUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
-  const tomorrowDate = tomorrowUtc.toISOString().split('T')[0]
+  // Day dates are plain calendar strings, so "today"/"tomorrow" have to be
+  // compared against the local calendar day, not the UTC one.
+  const nowDate = localToday(now)
+  const tomorrowDate = localToday(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))
 
   if (date === nowDate) return t('collab.whatsNext.today') || 'Today'
   if (date === tomorrowDate) return t('collab.whatsNext.tomorrow') || 'Tomorrow'
@@ -47,7 +49,7 @@ export default function WhatsNextWidget({ tripMembers = [] }: WhatsNextWidgetPro
 
   const upcoming = useMemo(() => {
     const now = new Date()
-    const nowDate = now.toISOString().split('T')[0]
+    const nowDate = localToday(now)
     const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
     const items = []
 

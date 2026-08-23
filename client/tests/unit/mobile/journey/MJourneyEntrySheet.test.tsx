@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import userEvent from '@testing-library/user-event';
@@ -244,6 +245,7 @@ interface MountOptions {
   withDelete?: boolean;
   withProviderHook?: boolean;
   upload?: UploadFn;
+  strict?: boolean;
 }
 
 const defaultUpload: UploadFn = async (_entryId, files, cbs) => {
@@ -258,7 +260,7 @@ function mountSheet(sheetEntry: JourneyEntry, opts: MountOptions = {}) {
   const onSave = vi.fn(async (_data: Record<string, unknown>, _existingEntryId?: number) => 42);
   const onUploadPhotos = vi.fn(opts.upload ?? defaultUpload);
   const onAddProviderPhotos = vi.fn(async (_entryId: number, _group: Record<string, unknown>) => {});
-  const view = render(
+  const sheet = (
     <MJourneyEntrySheet
       entry={sheetEntry}
       galleryPhotos={opts.galleryPhotos ?? []}
@@ -274,6 +276,9 @@ function mountSheet(sheetEntry: JourneyEntry, opts: MountOptions = {}) {
       onDone={onDone}
     />
   );
+  // main.tsx runs the app inside StrictMode, so a handler that is not pure shows
+  // its double-invoke here and nowhere else.
+  const view = render(opts.strict ? <StrictMode>{sheet}</StrictMode> : sheet);
   return { ...view, onClose, onDone, onDelete, onSave, onUploadPhotos, onAddProviderPhotos };
 }
 
@@ -283,13 +288,19 @@ const timeField = () => document.querySelector('input[type="time"]') as HTMLInpu
 const jpeg = (name = 'a.jpg') => new File(['x'], name, { type: 'image/jpeg' });
 
 const originalCreateObjectURL = URL.createObjectURL;
+const originalRevokeObjectURL = URL.revokeObjectURL;
+const revokeSpy = vi.fn();
 
 describe('MJourneyEntrySheet full editor', () => {
   beforeEach(() => {
     toastSpy.mockClear();
+    revokeSpy.mockClear();
     window.__addToast = toastSpy;
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true, writable: true, value: vi.fn(() => 'blob:preview'),
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true, writable: true, value: revokeSpy,
     });
   });
 
@@ -297,6 +308,9 @@ describe('MJourneyEntrySheet full editor', () => {
     delete window.__addToast;
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true, writable: true, value: originalCreateObjectURL,
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true, writable: true, value: originalRevokeObjectURL,
     });
   });
 
@@ -530,6 +544,22 @@ describe('MJourneyEntrySheet full editor', () => {
     expect(document.querySelector('img[src="blob:preview"]')).not.toBeInTheDocument();
   });
 
+  it('FE-MOB-JENTRY-048: mints one preview url per queued file and releases it on unmount', async () => {
+    const { unmount } = mountSheet(buildEntry());
+
+    fireEvent.change(multiFileInput(), { target: { files: [jpeg()] } });
+    await waitFor(() => expect(document.querySelector('img[src="blob:preview"]')).toBeInTheDocument());
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+
+    // Typing re-renders the tile; the url must not be minted again.
+    fireEvent.change(screen.getByPlaceholderText('Give this moment a name...'), { target: { value: 'Ferry' } });
+    fireEvent.change(screen.getByPlaceholderText('Give this moment a name...'), { target: { value: 'Ferry day' } });
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+
+    unmount();
+    expect(revokeSpy).toHaveBeenCalledWith('blob:preview');
+  });
+
   it('FE-MOB-JENTRY-015: queues gallery photos on a new entry and links them after the save', async () => {
     const linked: unknown[] = [];
     server.use(http.post('/api/journeys/entries/42/link-photo', async ({ request }) => {
@@ -639,6 +669,41 @@ describe('MJourneyEntrySheet full editor', () => {
     expect(order[0]).toBe('/api/photos/101/thumbnail');
   });
 
+  it('FE-MOB-JENTRY-049: promoting a photo under StrictMode still patches each photo once', async () => {
+    const patched: Array<{ id: string; body: unknown }> = [];
+    server.use(http.patch('/api/journeys/photos/:id', async ({ params, request }) => {
+      patched.push({ id: String(params.id), body: await request.json() });
+      return HttpResponse.json({ ok: true });
+    }));
+    const user = userEvent.setup();
+    mountSheet(buildEntry({ id: 5, photos: [buildPhoto(100), buildPhoto(101)] }), { strict: true });
+
+    await user.click(screen.getByRole('button', { name: '1st' }));
+
+    await waitFor(() => expect(patched.length).toBeGreaterThanOrEqual(2));
+    // Let a doubled batch land before counting, otherwise the extra PATCHes slip in
+    // after the assertion.
+    await act(async () => { await new Promise(r => setTimeout(r, 20)); });
+    expect(patched.map(p => p.id)).toEqual(['101', '100']);
+  });
+
+  it('FE-MOB-JENTRY-050: a refused reorder snaps the strip back and says so', async () => {
+    let attempts = 0;
+    server.use(http.patch('/api/journeys/photos/:id', () => {
+      attempts += 1;
+      return HttpResponse.json({ error: 'sort rejected' }, { status: 500 });
+    }));
+    const user = userEvent.setup();
+    mountSheet(buildEntry({ id: 5, photos: [buildPhoto(100), buildPhoto(101)] }));
+
+    await user.click(screen.getByRole('button', { name: '1st' }));
+
+    await waitFor(() => expect(attempts).toBe(2));
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('sort rejected', 'error', undefined));
+    const order = Array.from(document.querySelectorAll('.h-16 img')).map(i => i.getAttribute('src'));
+    expect(order).toEqual(['/api/photos/100/thumbnail', '/api/photos/101/thumbnail']);
+  });
+
   it('FE-MOB-JENTRY-021: toggles mood and weather chips back off', async () => {
     const user = userEvent.setup();
     const { onSave } = mountSheet(buildEntry({ id: 5, mood: 'rough', weather: 'cold' }));
@@ -735,18 +800,21 @@ describe('MJourneyEntrySheet full editor', () => {
     expect(screen.queryByText('All photos already added')).not.toBeInTheDocument();
   });
 
-  it('FE-MOB-JENTRY-037: reorders photos locally even when persisting the order fails', async () => {
-    let attempts = 0;
-    server.use(http.patch('/api/journeys/photos/:id', () => {
-      attempts += 1;
-      return new HttpResponse(null, { status: 500 });
+  it('FE-MOB-JENTRY-037: a partly accepted order keeps what the server took', async () => {
+    const patched: number[] = [];
+    server.use(http.patch('/api/journeys/photos/:id', ({ params }) => {
+      const id = Number(params.id);
+      patched.push(id);
+      if (id === 100) return new HttpResponse(null, { status: 500 });
+      return HttpResponse.json({ ok: true });
     }));
     const user = userEvent.setup();
     mountSheet(buildEntry({ id: 5, photos: [buildPhoto(100), buildPhoto(101)] }));
 
     await user.click(screen.getByRole('button', { name: '1st' }));
 
-    await waitFor(() => expect(attempts).toBe(2));
+    await waitFor(() => expect(patched).toEqual([101, 100]));
+    // 101 is first on the server now; snapping the strip back would hide that.
     const order = Array.from(document.querySelectorAll('.h-16 img')).map(i => i.getAttribute('src'));
     expect(order).toEqual(['/api/photos/101/thumbnail', '/api/photos/100/thumbnail']);
   });

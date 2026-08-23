@@ -250,6 +250,43 @@ describe('MCP session management', () => {
     expect(sessions.has(firstSessionId)).toBe(false); // the least-recently-active one made room
   });
 
+  it('MCP-006 — initializes that race past the cap check are trimmed when they register', async () => {
+    const { user } = createUser(testDb);
+    testDb.prepare("UPDATE addons SET enabled = 1 WHERE id = 'mcp'").run();
+
+    const sessionsForUser = () => [...sessions.values()].filter((s) => s.userId === user.id).length;
+
+    // What the race leaves behind: concurrent initializes all read the same
+    // pre-registration count, all pass the cap check, and all register — so the
+    // map ends up over the cap. Driving that through supertest depends on how
+    // the requests interleave, so the state itself is set up instead: four past
+    // the cap, none of them the newcomer's doing. Each entry is only ever
+    // counted and evicted, so a stub with closable halves is enough.
+    // Inside the TTL, or countSessionsForUser skips them and there is nothing
+    // over the cap to trim.
+    const stale = Date.now() - 10_000;
+    for (let i = 0; i < 24; i++) {
+      sessions.set(`overshoot-${i}`, {
+        server: { close() {} },
+        transport: { close() {} },
+        userId: user.id,
+        scopes: null,
+        clientId: null,
+        isStaticToken: false,
+        lastActivity: stale + i,
+        lastClientIp: null,
+      } as unknown as NonNullable<ReturnType<typeof sessions.get>>);
+    }
+    expect(sessionsForUser()).toBe(24);
+
+    // The pre-check gives back one; without the trim at registration the other
+    // four stay in the map — each holding a full McpServer — until the TTL sweep.
+    const newSessionId = await createSession(user.id);
+
+    expect(sessionsForUser()).toBe(20);
+    expect(sessions.has(newSessionId)).toBe(true);
+  });
+
   it('MCP — session resumption with valid mcp-session-id', async () => {
     const { user } = createUser(testDb);
     testDb.prepare("UPDATE addons SET enabled = 1 WHERE id = 'mcp'").run();
@@ -431,6 +468,43 @@ describe('MCP transport parity pins (Nest-hosted /mcp)', () => {
     expect(res.status).toBe(403);
     expect(res.body).toEqual({ error: 'Session was created with a different OAuth client' });
     expect(res.headers['www-authenticate']).toBe(EXPECTED_CHALLENGE);
+  });
+
+  it('MCP-P08b — a narrower token cannot resume a session that was created with wider scopes', async () => {
+    const { user } = createUser(testDb);
+    const created = oauthSvc.createOAuthClient(user.id, 'Scope Test Client', ['https://client.example.com/cb'], ['trips:read', 'trips:write']);
+    const clientId = (created.client as { client_id: string }).client_id;
+    const wide = oauthSvc.issueTokens(clientId, user.id, ['trips:read', 'trips:write'], null, MCP_AUDIENCE);
+    const narrow = oauthSvc.issueTokens(clientId, user.id, ['trips:read'], null, MCP_AUDIENCE);
+    const sessionId = await createSession(wide.access_token);
+
+    // The tool surface was registered from the wide set; resuming with the
+    // narrow one would ride it.
+    const res = await request(app)
+      .post('/mcp')
+      .set('Authorization', `Bearer ${narrow.access_token}`)
+      .set('mcp-session-id', sessionId)
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 2 });
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({ error: 'Session was created with different scopes' });
+    expect(res.headers['www-authenticate']).toContain('error="insufficient_scope"');
+  });
+
+  it('MCP-P08c — the same scopes in a different order still resume', async () => {
+    const { user } = createUser(testDb);
+    const created = oauthSvc.createOAuthClient(user.id, 'Scope Order Client', ['https://client.example.com/cb'], ['trips:read', 'trips:write']);
+    const clientId = (created.client as { client_id: string }).client_id;
+    const first = oauthSvc.issueTokens(clientId, user.id, ['trips:read', 'trips:write'], null, MCP_AUDIENCE);
+    const reordered = oauthSvc.issueTokens(clientId, user.id, ['trips:write', 'trips:read'], null, MCP_AUDIENCE);
+    const sessionId = await createSession(first.access_token);
+
+    const res = await request(app)
+      .post('/mcp')
+      .set('Authorization', `Bearer ${reordered.access_token}`)
+      .set('mcp-session-id', sessionId)
+      .set('Accept', 'application/json, text/event-stream')
+      .send({ jsonrpc: '2.0', method: 'tools/list', id: 2 });
+    expect(res.status).toBe(200);
   });
 
   it('MCP-P09 — a static-token session carries the deprecation notice on the first tool call only', async () => {

@@ -271,6 +271,7 @@ describe('CollabNotes', () => {
     const listener = calls[calls.length - 1][0];
     act(() => {
       listener({
+        tripId: 1,
         type: 'collab:note:created',
         note: {
           id: 50, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
@@ -301,7 +302,7 @@ describe('CollabNotes', () => {
     const calls = (addListener as ReturnType<typeof vi.fn>).mock.calls;
     const listener = calls[calls.length - 1][0];
     act(() => {
-      listener({ type: 'collab:note:deleted', noteId: 7 });
+      listener({ tripId: 1, type: 'collab:note:deleted', noteId: 7 });
     });
     await waitFor(() => expect(screen.queryByText('WS Delete')).not.toBeInTheDocument());
   });
@@ -463,6 +464,7 @@ describe('CollabNotes', () => {
     const listener = calls[calls.length - 1][0];
     act(() => {
       listener({
+        tripId: 1,
         type: 'collab:note:updated',
         note: {
           id: 5, trip_id: 1, user_id: 1, author_username: 'testuser', author_avatar: null,
@@ -1390,7 +1392,7 @@ describe('CollabNotes details', () => {
     await screen.findByText('Already here');
     const handler = wsHandler();
     await act(async () => {
-      handler({ type: 'collab:note:created', note: buildNote({ id: 4, title: 'Already here' }) });
+      handler({ tripId: 1, type: 'collab:note:created', note: buildNote({ id: 4, title: 'Already here' }) });
     });
     expect(screen.getAllByText('Already here')).toHaveLength(1);
   });
@@ -1403,7 +1405,7 @@ describe('CollabNotes details', () => {
     await screen.findByText('Second');
     const handler = wsHandler();
     await act(async () => {
-      handler({ type: 'collab:note:updated', note: { id: 2, title: 'Second renamed' } });
+      handler({ tripId: 1, type: 'collab:note:updated', note: { id: 2, title: 'Second renamed' } });
     });
     expect(await screen.findByText('Second renamed')).toBeInTheDocument();
     expect(screen.getByText('First')).toBeInTheDocument();
@@ -1414,9 +1416,9 @@ describe('CollabNotes details', () => {
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Doomed');
     const handler = wsHandler();
-    await act(async () => { handler({ type: 'collab:note:deleted' }); });
+    await act(async () => { handler({ tripId: 1, type: 'collab:note:deleted' }); });
     expect(screen.getByText('Doomed')).toBeInTheDocument();
-    await act(async () => { handler({ type: 'collab:note:deleted', id: 9 }); });
+    await act(async () => { handler({ tripId: 1, type: 'collab:note:deleted', id: 9 }); });
     await waitFor(() => expect(screen.queryByText('Doomed')).not.toBeInTheDocument());
   });
 
@@ -1803,6 +1805,59 @@ describe('CollabNotes details', () => {
     expect(screen.getByText('Older note')).toBeInTheDocument();
   });
 
+  it('FE-W5CNT-030: a WebSocket event for another trip is ignored', async () => {
+    serveNotes({ notes: [] });
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('No notes yet');
+    const handler = wsHandler();
+    await act(async () => {
+      handler({ tripId: 2, type: 'collab:note:created', note: buildNote({ id: 60, title: 'Other trip note' }) });
+    });
+    expect(screen.queryByText('Other trip note')).not.toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-031: a rejected rename still renames the rest and re-reads the list', async () => {
+    const user = userEvent.setup();
+    const puts: string[] = [];
+    serveNotesSequence([
+      { notes: [buildNote({ id: 1, title: 'First note', category: 'OldCat' }), buildNote({ id: 2, title: 'Second note', category: 'OldCat' })] },
+      { notes: [buildNote({ id: 1, title: 'First note', category: 'OldCat' }), buildNote({ id: 2, title: 'Second note', category: 'NewCat' })] },
+    ]);
+    server.use(
+      http.put('/api/trips/1/collab/notes/1', () => {
+        puts.push('1');
+        return new HttpResponse(null, { status: 500 });
+      }),
+      http.put('/api/trips/1/collab/notes/2', () => {
+        puts.push('2');
+        return HttpResponse.json({ note: buildNote({ id: 2, title: 'Second note', category: 'NewCat' }) });
+      }),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('First note');
+
+    await user.click(screen.getByTitle('Manage Categories'));
+    await screen.findByText('Manage Categories', { selector: 'h3' });
+    const oldCat = screen.getAllByText('OldCat').find(el => el.tagName === 'SPAN' && el.title === 'Click to rename')!;
+    await user.click(oldCat);
+    const editInput = screen.getByDisplayValue('OldCat');
+    await user.clear(editInput);
+    await user.type(editInput, 'NewCat');
+    await user.keyboard('{Enter}');
+    await user.click(screen.getByRole('button', { name: /^Save$/i }));
+
+    // The rejected note must not stop the second one, but the modal stays open —
+    // half a rename is not a saved rename.
+    await waitFor(() => expect(puts).toEqual(['1', '2']));
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    expect(screen.getByText('Manage Categories', { selector: 'h3' })).toBeInTheDocument();
+    // Re-read: the note the server refused is still shown under its old category.
+    const header = screen.getByText('Manage Categories', { selector: 'h3' }).parentElement!;
+    await user.click(within(header).getByRole('button'));
+    await waitFor(() => expect(screen.getAllByText('NewCat').length).toBeGreaterThan(0));
+    expect(screen.getAllByText('OldCat').length).toBeGreaterThan(0);
+  });
+
   it('FE-W5CNT-029: a failing delete reports an error and keeps the note in the list', async () => {
     const user = userEvent.setup();
     serveNotes({ notes: [buildNote({ id: 30, title: 'Stubborn note' })] });
@@ -1818,5 +1873,37 @@ describe('CollabNotes details', () => {
 
     await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
     expect(screen.getByText('Stubborn note')).toBeInTheDocument();
+  });
+
+  it('FE-W5CNT-032: a rejected category rename keeps the settings modal open and reports once', async () => {
+    const user = userEvent.setup();
+    serveNotes({
+      notes: [
+        buildNote({ id: 1, title: 'First note', category: 'OldCat' }),
+        buildNote({ id: 2, title: 'Second note', category: 'OldCat' }),
+      ],
+    });
+    server.use(
+      http.put('/api/trips/1/collab/notes/:id', () => new HttpResponse(null, { status: 500 })),
+    );
+    render(<CollabNotes {...defaultProps} />);
+    await screen.findByText('First note');
+    await user.click(screen.getByTitle('Manage Categories'));
+    await screen.findByText('Manage Categories', { selector: 'h3' });
+
+    const oldCat = screen.getAllByText('OldCat').find(el => el.tagName === 'SPAN' && el.title === 'Click to rename')!;
+    await user.click(oldCat);
+    const editInput = screen.getByDisplayValue('OldCat');
+    await user.clear(editInput);
+    await user.type(editInput, 'NewCat');
+    await user.keyboard('{Enter}');
+    await screen.findByText('NewCat');
+    await user.click(screen.getByRole('button', { name: /^Save$/i }));
+
+    await waitFor(() => expect(addToast).toHaveBeenCalledWith('Error', 'error', undefined));
+    // Nothing was renamed, so the modal must not act like it was saved…
+    expect(screen.getByText('Manage Categories', { selector: 'h3' })).toBeInTheDocument();
+    // …and both rejected writes are one message, not one each.
+    expect(addToast).toHaveBeenCalledTimes(1);
   });
 });

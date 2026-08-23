@@ -3,16 +3,27 @@ import { Link, List, Grid, MapPin, Check } from 'lucide-react'
 import { journeyApi } from '../../api/client'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
+import { copyText } from '../../utils/clipboard'
 
 export default function JourneyShareSection({ journeyId }: { journeyId: number }) {
   const { t } = useTranslation()
   const [link, setLink] = useState<{ token: string; share_timeline: boolean; share_gallery: boolean; share_map: boolean } | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+  /** The share token is the owner's to manage; a contributor is refused. */
+  const [manageable, setManageable] = useState(true)
   const toast = useToast()
 
   useEffect(() => {
-    journeyApi.getShareLink(journeyId).then(d => setLink(d.link || null)).catch(() => {}).finally(() => setLoading(false))
+    journeyApi.getShareLink(journeyId)
+      .then(d => setLink(d.link || null))
+      .catch((err: { response?: { status?: number } }) => {
+        // A 403 is the server saying this is not yours to manage. Showing the
+        // section anyway would offer an editor a "create link" button that is
+        // refused the moment they press it.
+        if (err?.response?.status === 403) setManageable(false)
+      })
+      .finally(() => setLoading(false))
   }, [journeyId])
 
   const createLink = async () => {
@@ -42,13 +53,13 @@ export default function JourneyShareSection({ journeyId }: { journeyId: number }
 
   const shareUrl = link ? `${window.location.origin}/public/journey/${link.token}` : ''
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(shareUrl)
+  const copyLink = async () => {
+    if (!(await copyText(shareUrl))) return
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
-  if (loading) return null
+  if (loading || !manageable) return null
 
   return (
     <div>

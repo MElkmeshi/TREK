@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { RealtimeService } from '../realtime/realtime.service';
 import { DatabaseService } from '../database/database.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { discardBody, readCappedJson } from '../../utils/cappedFetch';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -97,6 +98,13 @@ export interface VacayShare {
 
 const CACHE_TTL = 24 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 10_000;
+// A country's holidays for one year are a few kilobytes; two megabytes means the
+// provider is misbehaving and we would rather report the usual error than buffer it.
+const MAX_HOLIDAY_BYTES = 2 * 1024 * 1024;
+// Both providers key on a 4-digit year and an ISO 3166-1 alpha-2 code. Anything
+// else has no business reaching the URL path.
+const YEAR_RE = /^\d{4}$/;
+const COUNTRY_RE = /^[A-Za-z]{2}$/;
 
 // ---------------------------------------------------------------------------
 // Color palette for auto-assign
@@ -455,9 +463,12 @@ export class VacayService {
           const cached = this.holidayCache.get(cacheKey);
           let holidays = cached && Date.now() - cached.time < CACHE_TTL ? cached.data as Holiday[] : undefined;
           if (!holidays) {
+            if (!COUNTRY_RE.test(country)) continue;
             const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-            if (!resp.ok) continue;
-            holidays = await resp.json() as Holiday[];
+            if (!resp.ok) { discardBody(resp); continue; }
+            const parsed = await readCappedJson<Holiday[]>(resp, MAX_HOLIDAY_BYTES);
+            if (parsed === undefined) continue;
+            holidays = parsed;
             this.holidayCache.set(cacheKey, { data: holidays, time: Date.now() });
           }
           const hasRegions = holidays.some((h: Holiday) => h.counties && h.counties.length > 0);
@@ -1222,8 +1233,9 @@ export class VacayService {
     if (cached && Date.now() - cached.time < CACHE_TTL) return { data: cached.data };
     try {
       const resp = await fetch('https://date.nager.at/api/v3/AvailableCountries', { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-      if (!resp.ok) return { error: 'Failed to fetch countries' };
-      const data = await resp.json();
+      if (!resp.ok) { discardBody(resp); return { error: 'Failed to fetch countries' }; }
+      const data = await readCappedJson(resp, MAX_HOLIDAY_BYTES);
+      if (data === undefined) return { error: 'Failed to fetch countries' };
       this.holidayCache.set(cacheKey, { data, time: Date.now() });
       return { data };
     } catch {
@@ -1232,13 +1244,17 @@ export class VacayService {
   }
 
   async getHolidays(year: string, country: string): Promise<{ data?: unknown; error?: string }> {
+    // Both segments land in the URL path, so they are checked before the cache
+    // lookup rather than after it.
+    if (!YEAR_RE.test(year) || !COUNTRY_RE.test(country)) return { error: 'Failed to fetch holidays' };
     const cacheKey = `${year}-${country}`;
     const cached = this.holidayCache.get(cacheKey);
     if (cached && Date.now() - cached.time < CACHE_TTL) return { data: cached.data };
     try {
       const resp = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-      if (!resp.ok) return { error: 'Failed to fetch holidays' };
-      const data = await resp.json();
+      if (!resp.ok) { discardBody(resp); return { error: 'Failed to fetch holidays' }; }
+      const data = await readCappedJson(resp, MAX_HOLIDAY_BYTES);
+      if (data === undefined) return { error: 'Failed to fetch holidays' };
       this.holidayCache.set(cacheKey, { data, time: Date.now() });
       return { data };
     } catch {
@@ -1247,6 +1263,7 @@ export class VacayService {
   }
 
   async getSchoolHolidayRegions(country: string, language = 'EN'): Promise<{ data?: unknown; error?: string }> {
+    if (!COUNTRY_RE.test(country)) return { error: 'Failed to fetch school holiday regions' };
     const normalizedLanguage = String(language || 'EN').slice(0, 2).toUpperCase();
     const cacheKey = `school-regions-${country}-${normalizedLanguage}`;
     const cached = this.holidayCache.get(cacheKey);
@@ -1256,11 +1273,15 @@ export class VacayService {
         fetch(`https://openholidaysapi.org/Groups?countryIsoCode=${country}&languageIsoCode=${normalizedLanguage}`, { headers: { accept: 'text/json' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }),
         fetch(`https://openholidaysapi.org/Subdivisions?countryIsoCode=${country}&languageIsoCode=${normalizedLanguage}`, { headers: { accept: 'text/json' }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) }),
       ]);
-      if (!groupsResp.ok || !subdivisionsResp.ok) return { error: 'Failed to fetch school holiday regions' };
-      const data = {
-        groups: await groupsResp.json(),
-        subdivisions: await subdivisionsResp.json(),
-      };
+      if (!groupsResp.ok || !subdivisionsResp.ok) {
+        discardBody(groupsResp);
+        discardBody(subdivisionsResp);
+        return { error: 'Failed to fetch school holiday regions' };
+      }
+      const groups = await readCappedJson(groupsResp, MAX_HOLIDAY_BYTES);
+      const subdivisions = await readCappedJson(subdivisionsResp, MAX_HOLIDAY_BYTES);
+      if (groups === undefined || subdivisions === undefined) return { error: 'Failed to fetch school holiday regions' };
+      const data = { groups, subdivisions };
       this.holidayCache.set(cacheKey, { data, time: Date.now() });
       return { data };
     } catch {
@@ -1269,6 +1290,7 @@ export class VacayService {
   }
 
   async getSchoolHolidays(year: string, country: string, subdivision?: string | null, language = 'EN', group?: string | null): Promise<{ data?: unknown; error?: string }> {
+    if (!YEAR_RE.test(year) || !COUNTRY_RE.test(country)) return { error: 'Failed to fetch school holidays' };
     const normalizedLanguage = String(language || 'EN').slice(0, 2).toUpperCase();
     const normalizedSubdivision = subdivision || '';
     const normalizedGroup = group || '';
@@ -1288,8 +1310,9 @@ export class VacayService {
         headers: { accept: 'text/json' },
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       });
-      if (!resp.ok) return { error: 'Failed to fetch school holidays' };
-      const data = await resp.json();
+      if (!resp.ok) { discardBody(resp); return { error: 'Failed to fetch school holidays' }; }
+      const data = await readCappedJson(resp, MAX_HOLIDAY_BYTES);
+      if (data === undefined) return { error: 'Failed to fetch school holidays' };
       this.holidayCache.set(cacheKey, { data, time: Date.now() });
       return { data };
     } catch {

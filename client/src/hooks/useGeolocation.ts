@@ -93,12 +93,25 @@ export function getCurrentPositionOnce(
 export function useGeolocation(): UseGeolocationReturn {
   const [position, setPosition] = useState<GeoPosition | null>(null)
   const [mode, setModeState] = useState<TrackingMode>('off')
+  // What setMode's updater form reads instead of a state updater's argument:
+  // React may run an updater more than once per commit, and subscribing from
+  // inside one would leak a watch (see setMode below).
+  const modeRef = useRef<TrackingMode>(mode)
+  modeRef.current = mode
   const [error, setError] = useState<string | null>(null)
   const watchIdRef = useRef<number | null>(null)
+  // True between the start of startWatch and the watchPosition call it awaits.
+  const startingRef = useRef(false)
+  // Bumped by every start and by every stop, so a run parked on the iOS prompt can
+  // tell it has been superseded — clearing startingRef alone can't, a start that came
+  // after the stop has set it again by then.
+  const startRunRef = useRef(0)
   const orientationHandlerRef = useRef<((e: DeviceOrientationEvent) => void) | null>(null)
   const headingRef = useRef<number | null>(null)
 
   const stopWatch = useCallback(() => {
+    startingRef.current = false
+    startRunRef.current++
     if (watchIdRef.current !== null) {
       try { navigator.geolocation.clearWatch(watchIdRef.current) } catch { /* noop */ }
       watchIdRef.current = null
@@ -116,6 +129,12 @@ export function useGeolocation(): UseGeolocationReturn {
       setError('Geolocation is not supported in this browser')
       return false
     }
+    // Already watching, or still waiting on the iOS prompt below: a second
+    // subscription would overwrite watchIdRef and leave the first one running
+    // with nobody left holding its id.
+    if (startingRef.current || watchIdRef.current !== null) return true
+    startingRef.current = true
+    const run = ++startRunRef.current
     setError(null)
 
     // iOS: ask for orientation permission up front; on Android and desktop
@@ -129,6 +148,9 @@ export function useGeolocation(): UseGeolocationReturn {
         }
       } catch { /* older webkit throws — ignore and proceed */ }
     }
+    // Stopped (or restarted) while the prompt was open: subscribing now would leave a
+    // watch running that nobody holds the id of any more.
+    if (startRunRef.current !== run) return false
 
     // Device orientation → compass heading. `alpha` is rotation around the
     // Z-axis (0 = facing magnetic north on most devices). The webkit-only
@@ -157,6 +179,7 @@ export function useGeolocation(): UseGeolocationReturn {
     window.addEventListener('deviceorientationabsolute', onOrientation as EventListener)
     window.addEventListener('deviceorientation', onOrientation as EventListener)
 
+    startingRef.current = false
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         setPosition({
@@ -189,17 +212,18 @@ export function useGeolocation(): UseGeolocationReturn {
   }, [stopWatch])
 
   const setMode = useCallback((m: TrackingMode | ((prev: TrackingMode) => TrackingMode)) => {
-    setModeState(prev => {
-      const next = typeof m === 'function' ? m(prev) : m
-      if (next === 'off') {
-        stopWatch()
-        setPosition(null)
-      } else if (watchIdRef.current === null) {
-        // started externally but no watch yet — start it
-        startWatch()
-      }
-      return next
-    })
+    const next = typeof m === 'function' ? m(modeRef.current) : m
+    // Kept in step here as well, so two setMode calls batched into one commit
+    // still see each other's result.
+    modeRef.current = next
+    setModeState(next)
+    if (next === 'off') {
+      stopWatch()
+      setPosition(null)
+    } else if (watchIdRef.current === null) {
+      // started externally but no watch yet — start it
+      void startWatch()
+    }
   }, [startWatch, stopWatch])
 
   const cycleMode = useCallback(async () => {

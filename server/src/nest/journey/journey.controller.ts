@@ -152,6 +152,20 @@ export class JourneyController {
     }
   }
 
+  /**
+   * Drop uploads that were committed before the authorization result was known.
+   *
+   * The commit has to happen first (the Immich mirror reads the final path), so
+   * every refusal after it has to take the bytes back out. Nothing sweeps
+   * orphans, and a loop of rejected POSTs would otherwise just fill the disk.
+   */
+  private async discardJourneyUploads(files: Express.Multer.File[]): Promise<void> {
+    for (const f of files) {
+      if (f.path) { try { fs.unlinkSync(f.path); } catch { /* best-effort */ } }
+      await this.storage.delete('journey', f.filename).catch(() => {});
+    }
+  }
+
   // The add call carries only an asset id, so when and where the picture was taken
   // are fetched from the provider afterwards rather than trusted from the client
   // (#1614). Detached: a slow or unreachable provider must not hold up the add.
@@ -220,10 +234,15 @@ export class JourneyController {
     // reads each file at its final uploads/journey path.
     await this.commitJourneyUploads(files);
     const results: unknown[] = [];
+    const refused: Express.Multer.File[] = [];
     for (const file of files) {
       const relativePath = `journey/${file.filename}`;
       const photo = this.journey.addPhoto(Number(entryId), user.id, relativePath, undefined, body?.caption as string | undefined);
-      if (!photo) continue;
+      if (!photo) {
+        // No row points at this file, so nothing would ever clean it up.
+        refused.push(file);
+        continue;
+      }
       // Mirror to Immich only when the user explicitly opted in (#730).
       if (this.journey.immichAutoUploadEnabled(user.id)) {
         try {
@@ -237,6 +256,9 @@ export class JourneyController {
         }
       }
       results.push(photo);
+    }
+    if (refused.length) {
+      await this.discardJourneyUploads(refused);
     }
     if (!results.length) {
       throw new HttpException({ error: 'Not allowed' }, 403);
@@ -348,6 +370,7 @@ export class JourneyController {
     const filePaths = files.map((f) => ({ path: `journey/${f.filename}` }));
     const photos = this.journey.uploadGalleryPhotos(Number(id), user.id, filePaths);
     if (!photos.length) {
+      await this.discardJourneyUploads(files);
       throw new HttpException({ error: 'Not allowed' }, 403);
     }
     // An uploaded file carries its own EXIF; reading it is what puts the photo on
@@ -465,6 +488,7 @@ export class JourneyController {
     await this.commitJourneyUploads([file]);
     const result = this.journey.updateJourney(Number(id), user.id, { cover_image: `journey/${file.filename}` });
     if (!result) {
+      await this.discardJourneyUploads([file]);
       throw new HttpException({ error: 'Journey not found' }, 404);
     }
     return result;
@@ -575,7 +599,7 @@ export class JourneyController {
       baseVersion: body.baseVersion,
     });
     if (result === null) {
-      throw new HttpException({ error: 'Journey not found' }, 404);
+      throw this.bookRefusal(Number(id), user.id);
     }
     if ('conflict' in result) {
       /*
@@ -600,8 +624,22 @@ export class JourneyController {
   deleteBook(@CurrentUser() user: User, @Param('id') id: string) {
     const removed = this.books.deleteBook(Number(id), user.id);
     if (removed === null) {
-      throw new HttpException({ error: 'Journey not found' }, 404);
+      throw this.bookRefusal(Number(id), user.id);
     }
+  }
+
+  /**
+   * Why a book write was refused, in a way the editor can act on.
+   *
+   * Both refusals come back as null, and answering 404 for both would tell a
+   * viewer who has just spent an hour laying out pages that their journey does
+   * not exist. Someone who cannot see the journey at all still gets the 404 —
+   * the status is not an existence oracle for them.
+   */
+  private bookRefusal(journeyId: number, userId: number): HttpException {
+    return this.books.canOpen(journeyId, userId)
+      ? new HttpException({ error: 'Not allowed' }, 403)
+      : new HttpException({ error: 'Journey not found' }, 404);
   }
 
   @Post(':id/entries')
@@ -669,7 +707,15 @@ export class JourneyController {
   // ── Share Link ──────────────────────────────────────────────────────────
   @Get(':id/share-link')
   getShareLink(@CurrentUser() user: User, @Param('id') id: string) {
-    return { link: this.journey.getJourneyShareLink(Number(id), user.id) };
+    // Reading the token is owner-only. It refuses like its siblings rather than
+    // answering with a null link: "not published" and "not yours to see" are
+    // different answers, and a client told the first one offers a create button
+    // that the POST below then refuses.
+    const result = this.journey.getJourneyShareLink(Number(id), user.id);
+    if (!result.allowed) {
+      throw new HttpException({ error: 'Not allowed' }, 403);
+    }
+    return { link: result.link };
   }
 
   @Post(':id/share-link')
@@ -679,6 +725,7 @@ export class JourneyController {
       share_timeline: body.share_timeline as boolean | undefined,
       share_gallery: body.share_gallery as boolean | undefined,
       share_map: body.share_map as boolean | undefined,
+      newest_first: body.newest_first as boolean | undefined,
     });
     if (!result) {
       throw new HttpException({ error: 'Not allowed' }, 403);

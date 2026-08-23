@@ -755,6 +755,59 @@ describe('NotificationsTab', () => {
       expect(screen.getByText('Connection refused')).toBeInTheDocument();
     });
   });
+
+  it('FE-COMP-NOTIFICATIONS-030: a failing toggle surfaces the generic error', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.put('/api/notifications/preferences', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    );
+    render(<><NotificationsTab /><ToastContainer /></>);
+    await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
+
+    const toggles = await screen.findAllByRole('button');
+    await user.click(toggles[0]);
+
+    expect(await screen.findByText('Error')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-NOTIFICATIONS-031: a failing toggle leaves a later toggle alone', async () => {
+    const user = userEvent.setup();
+    const bodies: Record<string, Record<string, boolean>>[] = [];
+    let rejectEmail!: () => void;
+    server.use(
+      http.put('/api/notifications/preferences', async ({ request }) => {
+        const body = (await request.json()) as Record<string, Record<string, boolean>>;
+        bodies.push(body);
+        if (body.trip_invite?.email !== undefined) {
+          return new Promise<Response>(resolve => {
+            rejectEmail = () => resolve(HttpResponse.json({ error: 'nope' }, { status: 500 }) as unknown as Response);
+          });
+        }
+        return HttpResponse.json({ success: true });
+      }),
+    );
+    render(<><NotificationsTab /><ToastContainer /></>);
+    await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
+
+    // Email is off in this matrix, in-app is on.
+    const [email, inapp] = await screen.findAllByRole('button');
+    await user.click(email);
+    await waitFor(() => expect(screen.getAllByRole('button')[0]).toHaveAttribute('aria-pressed', 'true'));
+
+    // Flipped while the email write is still hanging.
+    await user.click(inapp);
+    await waitFor(() => expect(bodies).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByRole('button')[1]).toHaveAttribute('aria-pressed', 'false'));
+    // The in-app write must not carry the email cell, or the server would keep the
+    // value the failing write is about to take back.
+    expect(bodies[1].trip_invite.email).toBeUndefined();
+
+    rejectEmail();
+
+    await waitFor(() => expect(screen.getAllByRole('button')[0]).toHaveAttribute('aria-pressed', 'false'));
+    // The in-app toggle the user made meanwhile is not undone.
+    expect(screen.getAllByRole('button')[1]).toHaveAttribute('aria-pressed', 'false');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

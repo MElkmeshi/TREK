@@ -9,6 +9,7 @@ import type {
 } from '@trek/shared';
 import { readEnv, getAppUrl } from '../../app-config';
 import { safeFetchFollow, SsrfBlockedError } from '../../utils/ssrfGuard';
+import { discardBody, exceedsDeclaredLength, readCappedText } from '../../utils/cappedFetch';
 import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
 // ── Photo cache (disk-backed) ────────────────────────────────────────────────
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
@@ -336,6 +337,25 @@ interface GooglePlaceDetails extends GooglePlaceResult {
 // Wikimedia is normally well under a second, but a cold TLS handshake from a
 // fresh container has been seen at eight. Enrichment answers a live dialog, so
 // a slow provider is dropped rather than waited out.
+// A Google Maps place page is a few hundred KB; the coordinates sit in the
+// embedded map data near the top, so two megabytes is plenty and keeps an
+// unbounded body out of memory.
+const MAX_MAPS_PAGE_BYTES = 2_000_000;
+
+const GOOGLE_SHORT_HOSTS = ['goo.gl', 'maps.app.goo.gl'];
+
+/**
+ * Google Maps lives on every country domain — google.de, maps.google.co.uk,
+ * google.com.au — so the host is matched by shape. A fixed list of .com hosts
+ * would quietly stop resolving the ccTLD links people actually paste. The TLD
+ * labels stay short (2-3 letters, optionally two of them) so that
+ * `google.evil.com` is not a Google host.
+ */
+function isGoogleMapsHost(hostname: string): boolean {
+  return GOOGLE_SHORT_HOSTS.includes(hostname)
+    || /^(www\.|maps\.)?google\.[a-z]{2,3}(\.[a-z]{2})?$/.test(hostname);
+}
+
 const WIKI_TIMEOUT_MS = 6000;
 
 // Tighter than the wiki calls, because this one sits at the FRONT of a chain:
@@ -2032,9 +2052,8 @@ export class MapsService {
     // usually carries the !3d!4d data param we can then parse. Redirects are
     // followed manually so every hop is SSRF-re-checked.
     const parsed = new URL(url);
-    const GOOGLE_MAPS_HOSTS = ['goo.gl', 'maps.app.goo.gl', 'google.com', 'www.google.com', 'maps.google.com'];
-    const isShort = ['goo.gl', 'maps.app.goo.gl'].includes(parsed.hostname);
-    const isGoogleMaps = GOOGLE_MAPS_HOSTS.includes(parsed.hostname);
+    const isShort = GOOGLE_SHORT_HOSTS.includes(parsed.hostname);
+    const isGoogleMaps = isGoogleMapsHost(parsed.hostname);
     if (isShort || (isGoogleMaps && !extractCoords(url))) {
       resolvedUrl = (await followRedirects(url)).url || resolvedUrl;
     }
@@ -2043,14 +2062,27 @@ export class MapsService {
 
     // Still nothing (e.g. a cid page whose final URL lacks coordinates): fetch the
     // page body once and parse the coordinates out of the embedded map data.
-    if (!coords) {
+    // Only Google's own pages get read; the resolved host is what counts, so a
+    // short link that lands on maps.google.com still qualifies.
+    let resolvedHost = '';
+    try { resolvedHost = new URL(resolvedUrl).hostname; } catch { /* keep the empty host, the branch is skipped */ }
+    if (!coords && isGoogleMapsHost(resolvedHost)) {
       try {
         const pageRes = await followRedirects(resolvedUrl, {
           headers: { 'User-Agent': UA },
         });
-        coords = extractCoords(await pageRes.text());
+        if (exceedsDeclaredLength(pageRes, MAX_MAPS_PAGE_BYTES)) {
+          // Nothing here will read it, and an unread body keeps its socket.
+          discardBody(pageRes);
+        } else {
+          // The map data sits near the top of the document, so a truncated read
+          // still finds the coordinates; an oversized page degrades to the same
+          // 400 an unparseable one already produced.
+          const { text } = await readCappedText(pageRes, MAX_MAPS_PAGE_BYTES);
+          coords = extractCoords(text);
+        }
       } catch (err) {
-        if ((err as { status?: number })?.status === 403) throw err; // SSRF block — surface it
+        if ((err as { status?: number })?.status === 403) throw err; // SSRF block, surface it
         // Otherwise fall through to the not-found error below.
       }
     }

@@ -12,6 +12,7 @@ import {
   TramFront, Footprints, StickyNote, ParkingSquare,
 } from 'lucide-react'
 import { openFile } from '../../utils/fileDownload'
+import { safeExternalHref } from '../../utils/safeUrl'
 import { TransitTitle, TransitLegChips, TransitMetaBadges, fmtTransitDuration } from './transitDisplay'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -116,6 +117,10 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
   })()
   const attachedFiles = files.filter(f => f.reservation_id === r.id || (f.linked_reservation_ids || []).includes(r.id))
   const linked = r.assignment_id ? assignmentLookup[r.assignment_id] : null
+  // A booking link is deliberately free-form - people paste bare hosts and long
+  // provider deep links - so this refuses the schemes that execute in this
+  // origin and leaves everything else linkable.
+  const bookingUrl = safeExternalHref(r.url)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const handleDelete = async () => {
@@ -432,8 +437,12 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
             <div className={fieldLabelClass}>{t('reservations.urlLabel')}</div>
             <div className={fieldValueClass} style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400 }}>
               <ExternalLink size={13} className="text-content-faint" style={{ flexShrink: 0 }} />
-              <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline"
-                style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.url}</a>
+              {bookingUrl ? (
+                <a href={bookingUrl} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline"
+                  style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bookingUrl}</a>
+              ) : (
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.url}</span>
+              )}
             </div>
           </div>
         )}

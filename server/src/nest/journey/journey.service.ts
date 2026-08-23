@@ -78,13 +78,10 @@ export class JourneyService {
   removeContributor(id: number, userId: number, targetUserId: number) { return this.journey.removeContributor(id, userId, targetUserId); }
 
   // Share links
-  // Authorization: only someone with access to the journey may read its public
-  // share token — same access model as create/delete here and the
-  // get_journey_share_link MCP tool.
-  getJourneyShareLink(id: number, userId: number) {
-    if (!this.journey.canAccessJourney(id, userId)) return null;
-    return this.share.getJourneyShareLink(id);
-  }
+  // Authorization lives in JourneyShareService.readJourneyShareLink, which the
+  // MCP tool reads through as well; { allowed: false } is a refusal, not "no
+  // link exists".
+  getJourneyShareLink(id: number, userId: number) { return this.share.readJourneyShareLink(id, userId); }
   createOrUpdateJourneyShareLink(id: number, userId: number, data: Parameters<typeof this.share.createOrUpdateJourneyShareLink>[2]) { return this.share.createOrUpdateJourneyShareLink(id, userId, data); }
   deleteJourneyShareLink(id: number, userId: number) { return this.share.deleteJourneyShareLink(id, userId); }
 

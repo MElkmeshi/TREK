@@ -36,8 +36,34 @@ if (_encryptionKey) {
   // Try the dedicated key file first (covers all installs after first start).
   try {
     _encryptionKey = fs.readFileSync(encKeyFile, 'utf8').trim();
-  } catch {
+  } catch (readErr: unknown) {
+    const code = (readErr as NodeJS.ErrnoException)?.code;
+    if (code !== 'ENOENT') {
+      // The file is there, we just cannot read it (permissions, I/O error).
+      // Continuing would resolve a different key and overwrite this one below,
+      // which permanently orphans every stored secret. Refuse to start instead.
+      // The errno goes in the line because this exit crash-loops the container,
+      // and the code is the only part that says which of these it is.
+      console.error(
+        `FATAL: could not read ${encKeyFile} (${code ?? 'no errno'}) -`,
+        readErr instanceof Error ? readErr.message : readErr,
+      );
+      if (code === 'EISDIR') {
+        // Compose creating a missing bind-mount source as a directory is by far
+        // the most common way this file stops being a file.
+        console.error('EISDIR: the path is a directory. A bind mount pointed at data/.encryption_key created it as one — remove it and mount the data directory instead.');
+      }
+      console.error('Fix the file permissions or set ENCRYPTION_KEY explicitly.');
+      process.exit(1);
+    }
     // File not found — first start on an existing or fresh install.
+  }
+
+  if (!_encryptionKey && fs.existsSync(encKeyFile)) {
+    // Present but empty: a truncated write, a full disk, a broken restore.
+    // Same reasoning as above. Regenerating here would silently replace the real key.
+    console.error('FATAL:', encKeyFile, 'is empty. Restore it from backup or set ENCRYPTION_KEY.');
+    process.exit(1);
   }
 
   if (!_encryptionKey) {

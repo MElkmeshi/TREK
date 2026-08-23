@@ -14,6 +14,7 @@ import { journeyApi } from '../../../api/client'
 import { useJourneyStore } from '../../../store/journeyStore'
 import type { JourneyDetail } from '../../../store/journeyStore'
 import { normalizeImageFile } from '../../../utils/convertHeic'
+import { copyText } from '../../../utils/clipboard'
 import { pickGradient } from '../../../pages/journeyDetail/JourneyDetailPage.helpers'
 import { journeyCoverSrc } from './mobileJourneyMeta'
 
@@ -129,6 +130,12 @@ export default function MJourneySettingsSheet({
     } catch {
       toast.error(t('journey.share.createFailed'))
     }
+  }
+
+  const copyShareUrl = async () => {
+    if (!(await copyText(shareUrl))) return
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const toggleSharePerm = async (key: 'share_timeline' | 'share_gallery' | 'share_map') => {
@@ -333,11 +340,7 @@ export default function MJourneySettingsSheet({
               <span className="min-w-0 flex-1 truncate font-geist text-[0.6875rem] text-m-muted">{shareUrl}</span>
               <button
                 type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(shareUrl)
-                  setCopied(true)
-                  setTimeout(() => setCopied(false), 2000)
-                }}
+                onClick={copyShareUrl}
                 className="flex-none rounded-full bg-m-act px-3 py-[5px] font-geist text-[0.65625rem] font-bold text-m-actfg"
               >
                 {copied ? t('journey.share.copied') : t('journey.share.copy')}

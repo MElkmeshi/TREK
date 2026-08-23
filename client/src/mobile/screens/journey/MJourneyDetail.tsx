@@ -11,7 +11,7 @@ import { useJourneyDetail } from '../../../pages/journeyDetail/useJourneyDetail'
 import { useJourneyStore } from '../../../store/journeyStore'
 import type { JourneyEntry, GalleryPhoto } from '../../../store/journeyStore'
 import { useAuthStore } from '../../../store/authStore'
-import { journeyApi, addonsApi } from '../../../api/client'
+import { journeyApi, addonsApi, memoriesApi } from '../../../api/client'
 import { normalizeImageFiles } from '../../../utils/convertHeic'
 import { isVideoFile } from '../../../utils/videoPoster'
 import { getApiErrorMessage } from '../../../types'
@@ -135,7 +135,8 @@ export default function MJourneyDetail() {
   const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
-    (async () => {
+    let active = true
+    ;(async () => {
       try {
         const addonsData = await addonsApi.enabled()
         const enabled = (addonsData.addons || []).filter(
@@ -143,14 +144,19 @@ export default function MJourneyDetail() {
         )
         const connected: { id: string; name: string }[] = []
         for (const p of enabled) {
+          // The probes run one after another, so leaving the screen has to stop
+          // the queue rather than let every remaining provider be asked anyway.
+          if (!active) return
           try {
-            const res = await fetch(`/api/integrations/memories/${p.id}/status`, { credentials: 'include' })
-            if (res.ok && (await res.json()).connected) connected.push({ id: p.id, name: p.name })
+            // Same probe the desktop gallery uses, so a NAS cannot read as
+            // connected on one surface and not the other.
+            if ((await memoriesApi.status(p.id)).connected) connected.push({ id: p.id, name: p.name })
           } catch { /* provider stays hidden */ }
         }
-        setAvailableProviders(connected)
+        if (active) setAvailableProviders(connected)
       } catch { /* no providers */ }
     })()
+    return () => { active = false }
   }, [])
 
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

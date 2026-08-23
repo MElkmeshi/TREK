@@ -55,6 +55,7 @@ import {
 } from '@trek/shared'
 import { getSocketId } from './websocket'
 import { probeNow } from '../sync/connectivity'
+import { downloadBlob } from '../utils/fileDownload'
 
 /**
  * Validate a response payload against its @trek/shared Zod schema — but only in
@@ -968,6 +969,32 @@ export const journeyApi = {
   getPublicJourney: (token: string) => apiClient.get(`/public/journey/${token}`).then(r => r.data),
 }
 
+// Photo providers (Immich, Synology Photos, …) behind /api/integrations/memories.
+// The provider sits on the user's own hardware and the server proxies through to
+// it, so the 8s default does not apply — and neither does any number picked
+// here. The server already holds the deadline, and its worst case is longer than
+// anything that would look reasonable in this file: a Synology call is 30s, and
+// an expired session makes it re-authenticate and try again. A client cap below
+// that turns a slow NAS into a NAS that reads as disconnected, which is what
+// these calls looked like before they moved off raw fetch (which had no timeout
+// either). Callers that need to give up early pass an AbortSignal.
+const MEMORIES_TIMEOUT = 0
+
+export const memoriesApi = {
+  status: (provider: string): Promise<{ connected: boolean }> =>
+    apiClient.get(`/integrations/memories/${provider}/status`, { timeout: MEMORIES_TIMEOUT }).then(r => r.data),
+  search: (provider: string, body: { from: string; to: string; page: number; size: number }, signal?: AbortSignal) =>
+    apiClient.post(`/integrations/memories/${provider}/search`, body, { timeout: MEMORIES_TIMEOUT, signal }).then(r => r.data),
+  albums: (provider: string) =>
+    apiClient.get(`/integrations/memories/${provider}/albums`, { timeout: MEMORIES_TIMEOUT }).then(r => r.data),
+  albumPhotos: (provider: string, albumId: string, passphrase?: string, signal?: AbortSignal) =>
+    apiClient.get(`/integrations/memories/${provider}/albums/${albumId}/photos`, {
+      timeout: MEMORIES_TIMEOUT,
+      params: passphrase ? { passphrase } : undefined,
+      signal,
+    }).then(r => r.data),
+}
+
 export const mapsApi = {
   search: (query: string, lang?: string) => apiClient.post(`/maps/search?lang=${lang || 'en'}`, { query }).then(r => checkInDev(mapsSearchResultSchema, r.data, 'maps.search')),
   autocomplete: (input: string, lang?: string, locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } }, signal?: AbortSignal, sessionToken?: string) =>
@@ -1144,13 +1171,7 @@ export const backupApi = {
       credentials: 'include',
     })
     if (!res.ok) throw new Error('Download failed')
-    const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadBlob(await res.blob(), filename)
   },
   delete: (filename: string) => apiClient.delete(`/backup/${filename}`).then(r => r.data),
   restore: (filename: string) => apiClient.post(`/backup/restore/${filename}`).then(r => r.data),

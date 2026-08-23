@@ -253,6 +253,37 @@ describe('AuthController (authenticated)', () => {
     expect(ac(asvc({}), rl(), { createResourceToken: vi.fn().mockReturnValue({ token: 'rt' }) }).resourceToken(user, { purpose: 'download' })).toEqual({ token: 'rt' });
   });
 
+  it('ws/resource tokens throttle on their own buckets, so a mint loop cannot drain the store or block login', () => {
+    const s = rl();
+    const now = Date.now();
+    for (let i = 0; i < 120; i++) s.check('ws_token', String(user.id), 120, 15 * 60 * 1000, now);
+    expect(thrown(() => ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user)))
+      .toEqual({ status: 429, body: { error: 'Too many attempts. Please try again later.' } });
+    // The login bucket is untouched: an exhausted socket loop must not lock the account out.
+    expect(s.check('login', '9.9.9.9', 5, 15 * 60 * 1000, now)).toBe(true);
+
+    const s2 = rl();
+    for (let i = 0; i < 120; i++) s2.check('resource_token', String(user.id), 120, 15 * 60 * 1000, now);
+    expect(thrown(() => ac(asvc({}), s2, { createResourceToken: vi.fn().mockReturnValue({ token: 'rt' }) }).resourceToken(user, {})))
+      .toEqual({ status: 429, body: { error: 'Too many attempts. Please try again later.' } });
+  });
+
+  it('the ws/resource ceilings are per account, not per address: one heavy user cannot 429 the office', () => {
+    const s = rl();
+    const now = Date.now();
+    const other = { ...user, id: 2 } as User;
+    // Both users sit behind the same NAT address, and the first one burns its
+    // whole ceiling.
+    for (let i = 0; i < 120; i++) {
+      ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user);
+    }
+    expect(thrown(() => ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user)))
+      .toEqual({ status: 429, body: { error: 'Too many attempts. Please try again later.' } });
+
+    expect(ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws2' }) }).wsToken(other)).toEqual({ token: 'ws2' });
+    expect(ac(asvc({}), s, { createResourceToken: vi.fn().mockReturnValue({ token: 'rt2' }) }).resourceToken(other, {})).toEqual({ token: 'rt2' });
+  });
+
   it('rate-limited account ops throw 429 once the bucket is exhausted', () => {
     const s = rl();
     const now = Date.now();
