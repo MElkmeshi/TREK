@@ -46,7 +46,7 @@ export default function MobileMapTimeline({
   const [activeIndex, setActiveIndex] = useState(0)
 
   const entryDayMeta = useMemo(() => {
-    const uniqueDates = [...new Set(entries.map((e: any) => e.entry_date).sort())]
+    const uniqueDates = [...new Set(entries.map((e: any) => e.entry_date).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)))]
     const counters = new Map<string, number>()
     return entries.map((e: any) => {
       const dayIdx = uniqueDates.indexOf(e.entry_date)
@@ -171,7 +171,7 @@ export default function MobileMapTimeline({
         />
         {!readOnly && onAddEntry && (
           <div className="fixed right-4 z-30" style={{ bottom: 'calc(var(--bottom-nav-h, 84px) + 16px)' }}>
-            <button
+            <button type="button"
               onClick={onAddEntry}
               className="w-12 h-12 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
             >
@@ -244,7 +244,7 @@ export default function MobileMapTimeline({
           className="fixed right-4 z-30"
           style={{ bottom: 'calc(var(--bottom-nav-h, 84px) + 168px)' }}
         >
-          <button
+          <button type="button"
             onClick={onAddEntry}
             className="w-12 h-12 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
           >

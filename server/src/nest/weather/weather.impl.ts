@@ -49,7 +49,7 @@ async function fetchOpenMeteo(url: string): Promise<{ response: Response; data: 
 function coord(value: string, max: number, label: string): number {
   // Number('') and Number('  ') are 0, which would silently geolocate the Gulf
   // of Guinea instead of failing, so an empty value is rejected outright.
-  const n = String(value ?? '').trim() === '' ? NaN : Number(value);
+  const n = String(value ?? '').trim() === '' ? Number.NaN : Number(value);
   if (!Number.isFinite(n) || Math.abs(n) > max) {
     throw new ApiError(400, `Invalid ${label}`);
   }
@@ -199,8 +199,8 @@ const TTL_CURRENT_MS  = 15 * 60 * 1000;      // 15 minutes
 const TTL_CLIMATE_MS  = 24 * 60 * 60 * 1000; // 24 hours
 
 export function cacheKey(lat: string, lng: string, date?: string): string {
-  const rlat = parseFloat(lat).toFixed(2);
-  const rlng = parseFloat(lng).toFixed(2);
+  const rlat = Number.parseFloat(lat).toFixed(2);
+  const rlng = Number.parseFloat(lng).toFixed(2);
   return `${rlat}_${rlng}_${date || 'current'}`;
 }
 
@@ -430,7 +430,7 @@ export async function getWeather(
 
   const inFlightKey = `${ck}:${lang}`;
   const existing = inFlight.get(inFlightKey);
-  if (existing) return existing;
+  if (existing !== undefined) return existing;
   const promise = _getWeatherImpl(lat, lng, date, lang, time);
   inFlight.set(inFlightKey, promise);
   try { return await promise; } finally { inFlight.delete(inFlightKey); }
@@ -601,7 +601,7 @@ export async function getDetailedWeather(
 
   const inFlightKey = `${ck}:${lang}`;
   const existing = inFlight.get(inFlightKey);
-  if (existing) return existing;
+  if (existing !== undefined) return existing;
   const promise = _getDetailedWeatherImpl(lat, lng, date, lang);
   inFlight.set(inFlightKey, promise);
   try { return await promise; } finally { inFlight.delete(inFlightKey); }

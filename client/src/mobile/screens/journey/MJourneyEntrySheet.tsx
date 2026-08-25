@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { localIsoDate } from '../../../utils/localDate'
 import { Camera, Plus, Image, Images, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle } from 'lucide-react'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
@@ -57,7 +58,7 @@ export default function MJourneyEntrySheet({
 
   const [title, setTitle] = useState(entry.title || '')
   const [story, setStory] = useState(entry.story || '')
-  const [entryDate, setEntryDate] = useState(entry.entry_date || new Date().toISOString().split('T')[0])
+  const [entryDate, setEntryDate] = useState(entry.entry_date || localIsoDate())
   const [entryTime, setEntryTime] = useState(entry.entry_time?.slice(0, 5) || '')
   const [locationName, setLocationName] = useState(entry.location_name || '')
   const [locationLat, setLocationLat] = useState<number | null>(entry.location_lat ?? null)
@@ -138,7 +139,7 @@ export default function MJourneyEntrySheet({
       if (group.provider === activeProvider) group.assetIds.forEach(assetId => providerExistingAssetIds.add(assetId))
     })
   }
-  const contextLocation = isValidGeoPoint({ lat: locationLat ?? NaN, lng: locationLng ?? NaN })
+  const contextLocation = isValidGeoPoint({ lat: locationLat ?? Number.NaN, lng: locationLng ?? Number.NaN })
     ? { lat: locationLat!, lng: locationLng!, name: locationName || undefined }
     : null
 
@@ -177,7 +178,7 @@ export default function MJourneyEntrySheet({
   const isDirty =
     title !== (entry.title || '') ||
     story !== (entry.story || '') ||
-    entryDate !== (entry.entry_date || new Date().toISOString().split('T')[0]) ||
+    entryDate !== (entry.entry_date || localIsoDate()) ||
     entryTime !== (entry.entry_time?.slice(0, 5) || '') ||
     locationName !== (entry.location_name || '') ||
     mood !== (entry.mood || '') ||
@@ -314,7 +315,12 @@ export default function MJourneyEntrySheet({
   }
 
   const addTag = () => {
-    const value = tagInput.trim().replace(/,+$/, '')
+    // Trailing commas dropped by a scan, not /,+$/: an unanchored ,+ before $ has to
+    // retry from every comma in the run, so a pasted string of them freezes the tab.
+    const trimmed = tagInput.trim()
+    let end = trimmed.length
+    while (end > 0 && trimmed[end - 1] === ',') end--
+    const value = trimmed.slice(0, end)
     if (!value) return
     if (!tags.includes(value)) setTags(prev => [...prev, value])
     setTagInput('')

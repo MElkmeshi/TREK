@@ -1,4 +1,5 @@
 import PageShell from '../components/Layout/PageShell'
+import { localIsoDate } from '../utils/localDate'
 import { useTranslation, TransHtml } from '../i18n'
 import {
   Plus, Search, Sparkles, Calendar, MapPin,
@@ -47,7 +48,7 @@ function JourneyPageDesktop() {
           {/* Header — mobile */}
           <div className="md:hidden px-5 pt-5 pb-4 flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <button
+              <button type="button"
                 onClick={() => {
                   if (searchOpen) {
                     setSearchOpen(false)
@@ -61,7 +62,7 @@ function JourneyPageDesktop() {
               >
                 {searchOpen ? <X size={15} /> : <Search size={15} />}
               </button>
-              <button
+              <button type="button"
                 onClick={() => openCreateModal()}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[14px] font-semibold active:scale-[0.98] transition-transform"
               >
@@ -101,13 +102,13 @@ function JourneyPageDesktop() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
+                    <button type="button"
                       onClick={() => setDismissedSuggestions(prev => new Set([...prev, activeSuggestion.id]))}
                       className="px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-[12px] font-medium text-white hover:bg-white/20"
                     >
                       {t('journey.frontpage.dismiss')}
                     </button>
-                    <button
+                    <button type="button"
                       onClick={() => openCreateModal(activeSuggestion.id)}
                       className="px-3 py-1.5 rounded-lg !bg-white !text-zinc-900 text-[12px] font-medium hover:!bg-zinc-100"
                     >
@@ -121,9 +122,10 @@ function JourneyPageDesktop() {
             {/* Active Journey Hero */}
             {activeJourney && (
               <div className="mb-10">
-                <div
+                <button
+                  type="button"
                   onClick={() => navigate(`/journey/${activeJourney.id}`)}
-                  className="relative rounded-[28px] overflow-hidden cursor-pointer h-[250px] md:h-[280px] transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 shadow-[0_2px_4px_rgba(0,0,0,0.06),0_20px_48px_-18px_rgba(0,0,0,0.32)]"
+                  className="block w-full text-left relative rounded-[28px] overflow-hidden cursor-pointer h-[250px] md:h-[280px] transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 shadow-[0_2px_4px_rgba(0,0,0,0.06),0_20px_48px_-18px_rgba(0,0,0,0.32)]"
                   style={{
                     background: activeJourney.cover_image
                       ? `linear-gradient(120deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 45%, rgba(0,0,0,0.05) 100%), url(/uploads/${activeJourney.cover_image}) center/cover`
@@ -187,7 +189,7 @@ function JourneyPageDesktop() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </button>
               </div>
             )}
 
@@ -220,7 +222,7 @@ function JourneyPageDesktop() {
                 ))}
 
                 {/* Create card */}
-                <button
+                <button type="button"
                   onClick={() => openCreateModal()}
                   className="group min-h-[200px] rounded-[24px] flex flex-col items-center justify-center gap-3 transition-transform duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] cursor-pointer hover:-translate-y-1"
                   style={{ border: '1.5px dashed var(--vg-line2)', background: 'var(--vg-surf2)' }}
@@ -271,9 +273,9 @@ function JourneyPageDesktop() {
               <div className="flex flex-col gap-2 max-h-[320px] overflow-y-auto">
                 {availableTrips.map(trip => {
                   const selected = selectedTripIds.has(trip.id)
-                  const status = trip.end_date && trip.end_date < new Date().toISOString().split('T')[0]
+                  const status = trip.end_date && trip.end_date < localIsoDate()
                     ? 'completed'
-                    : trip.start_date && trip.start_date <= new Date().toISOString().split('T')[0]
+                    : trip.start_date && trip.start_date <= localIsoDate()
                       ? 'active'
                       : 'upcoming'
                   const statusColors: Record<string, string> = {
@@ -282,16 +284,24 @@ function JourneyPageDesktop() {
                     upcoming: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
                   }
 
+                  const toggleTrip = () => {
+                    setSelectedTripIds(prev => {
+                      const next = new Set(prev)
+                      if (next.has(trip.id)) next.delete(trip.id)
+                      else next.add(trip.id)
+                      return next
+                    })
+                  }
+
                   return (
                     <div
                       key={trip.id}
-                      onClick={() => {
-                        setSelectedTripIds(prev => {
-                          const next = new Set(prev)
-                          if (next.has(trip.id)) next.delete(trip.id)
-                          else next.add(trip.id)
-                          return next
-                        })
+                      role="checkbox"
+                      aria-checked={selected}
+                      tabIndex={0}
+                      onClick={toggleTrip}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTrip() }
                       }}
                       className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-[border-color,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] ${
                         selected
@@ -334,13 +344,13 @@ function JourneyPageDesktop() {
                 {selectedTripIds.size > 0 && <> · <strong className="text-zinc-900 dark:text-white">{totalPlaces}</strong> <span className="hidden md:inline">{t('journey.frontpage.placesImported')}</span><span className="md:hidden">{t('journey.frontpage.places')}</span></>}
               </div>
               <div className="flex items-center gap-2">
-                <button
+                <button type="button"
                   onClick={() => setShowCreate(false)}
                   className="px-3.5 py-2 rounded-lg border border-zinc-200 dark:border-zinc-600 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
                 >
                   {t('common.cancel')}
                 </button>
-                <button
+                <button type="button"
                   onClick={handleCreate}
                   disabled={!newTitle.trim()}
                   className="px-3.5 py-2 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -365,9 +375,10 @@ function JourneyCard({ journey, onClick }: { journey: Journey & { entry_count?: 
   const lifecycle = computeJourneyLifecycle(j.status, j.trip_date_min, j.trip_date_max)
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
-      className="vg-card rounded-[24px] overflow-hidden cursor-pointer transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 flex flex-col"
+      className="vg-card w-full text-left rounded-[24px] overflow-hidden cursor-pointer transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 flex flex-col"
     >
       {/* Cover with title overlay */}
       <div className="relative h-[200px] overflow-hidden" style={{ background: pickGradient(j.id) }}>
@@ -414,6 +425,6 @@ function JourneyCard({ journey, onClick }: { journey: Journey & { entry_count?: 
           ))}
         </div>
       </div>
-    </div>
+    </button>
   )
 }

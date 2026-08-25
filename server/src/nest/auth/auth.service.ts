@@ -25,7 +25,7 @@ import { splitManagedKeys } from '../common/managed';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
 import { verifyJwtAndLoadUser } from './jwt-verify';
 import { User } from '../../types';
-import { DEMO_EMAIL_PRIMARY, isDemoEmail } from '../common/demo';
+import { DEMO_EMAIL_PRIMARY, DEMO_PASS, isDemoEmail } from '../common/demo';
 import { avatarUrl } from '../common/avatarUrl';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { WebauthnConfigService } from './webauthn-config.service';
@@ -303,7 +303,7 @@ export class AuthService {
       managed: readEnv().managed.enabled,
       demo_mode: isDemo,
       demo_email: isDemo ? DEMO_EMAIL_PRIMARY : undefined,
-      demo_password: isDemo ? 'demo12345' : undefined,
+      demo_password: isDemo ? DEMO_PASS : undefined,
       timezone: readEnv().app.tz || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
       notification_channel: notifChannel,
       notification_channels: activeChannels,
@@ -855,8 +855,10 @@ export class AuthService {
   requestPasswordReset(rawEmail: string, createdIp: string | null): PasswordResetRequestOutcome {
     const email = String(rawEmail || '').trim().toLowerCase();
     // Basic shape check — a fully empty / malformed email is treated like
-    // "no user" so we still spend the same time internally.
-    const looksLikeEmail = email.length > 0 && /.+@.+\..+/.test(email);
+    // "no user" so we still spend the same time internally. Same "x@y.z somewhere
+    // on one line" test as the old /.+@.+\..+/, but anchored per line and pinned to
+    // the first usable '@' and '.', so a body full of '@' can no longer stall it.
+    const looksLikeEmail = email.length > 0 && /^.[^@\r\n\u2028\u2029]*@.[^.\r\n\u2028\u2029]*\../m.test(email);
 
     // Global policy check: password login disabled → no reset possible.
     const toggles = this.resolveAuthToggles();

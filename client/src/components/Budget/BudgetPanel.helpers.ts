@@ -48,12 +48,12 @@ export function hexLighten(hex: string, amount: number): string {
   const m = hex.replace('#', '').match(/.{2}/g)
   if (!m || m.length !== 3) return hex
   const mix = (c: number) => Math.min(255, Math.round(c + (255 - c) * amount))
-  const [r, g, b] = m.map(x => parseInt(x, 16))
+  const [r, g, b] = m.map(x => Number.parseInt(x, 16))
   return `#${[mix(r), mix(g), mix(b)].map(v => v.toString(16).padStart(2, '0')).join('')}`
 }
 
 export const fmtNum = (v: number | null | undefined, locale: string, cur: string) => {
-  if (v == null || isNaN(v)) return '-'
+  if (v == null || Number.isNaN(v)) return '-'
   const d = currencyDecimals(cur)
   return Number(v).toLocaleString(locale, { minimumFractionDigits: d, maximumFractionDigits: d }) + ' ' + (SYMBOLS[cur] || cur)
 }
@@ -75,7 +75,8 @@ export function splitColorFor(userId: number, order: number) {
 }
 
 export function colorForUserId(userId: number) {
-  return SPLIT_COLORS[((userId | 0) - 1 + SPLIT_COLORS.length * 1000) % SPLIT_COLORS.length]
+  const id = Number.isFinite(userId) ? Math.trunc(userId) : 0
+  return SPLIT_COLORS[(id - 1 + SPLIT_COLORS.length * 1000) % SPLIT_COLORS.length]
 }
 
 /**

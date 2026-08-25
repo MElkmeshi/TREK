@@ -136,7 +136,7 @@ describe('MAdminPackingTemplateManager', () => {
     await user.click(screen.getByRole('button', { name: 'New Template' }));
     await user.type(screen.getByPlaceholderText('Template name (e.g. Beach Holiday)'), 'Boom{Enter}');
 
-    await screen.findByText('Failed to create template');
+    expect(await screen.findByText('Failed to create template')).toBeInTheDocument();
   });
 
   it('FE-MOB-APKG-007: Escape and the cancel button both close the create field', async () => {
@@ -369,7 +369,7 @@ describe('MAdminPackingTemplateManager', () => {
     await user.click(await screen.findByRole('button', { name: 'Add category' }));
     await user.type(screen.getByPlaceholderText('Category name (e.g. Clothing)'), 'Electronics{Enter}');
 
-    await screen.findByText('Failed to save');
+    expect(await screen.findByText('Failed to save')).toBeInTheDocument();
   });
 
   it('FE-MOB-APKG-018: renaming a category updates its header', async () => {
@@ -586,7 +586,7 @@ describe('MAdminPackingTemplateManager', () => {
     await user.click(within(categoryHeader('Clothing')).getByRole('button', { name: 'Item name' }));
     await user.type(screen.getByPlaceholderText('Item name'), 'Sandals{Enter}');
 
-    await screen.findByText('Failed to save');
+    expect(await screen.findByText('Failed to save')).toBeInTheDocument();
   });
 
   it('FE-MOB-APKG-026: renaming an item persists via the save button', async () => {

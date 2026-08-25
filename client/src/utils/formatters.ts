@@ -163,8 +163,8 @@ export function formatDate(dateStr: string | null | undefined, locale: string, t
 export function parseMeridiemTime(value: string | null | undefined): string | null {
   const match = (value || '').trim().match(/^(\d{1,2}):?(\d{2})?\s*(am|pm)$/i)
   if (!match) return null
-  let h = parseInt(match[1])
-  const m = match[2] ? parseInt(match[2]) : 0
+  let h = Number.parseInt(match[1])
+  const m = match[2] ? Number.parseInt(match[2]) : 0
   const isPm = match[3].toLowerCase() === 'pm'
   if (h === 12) h = isPm ? 12 : 0
   else if (isPm) h += 12
@@ -183,7 +183,7 @@ export function formatTime(timeStr: string | null | undefined, locale: string, t
     const parts = (parseMeridiemTime(timeStr) ?? timeStr).split(':')
     const h = Number(parts[0]) || 0
     const m = Number(parts[1]) || 0
-    if (isNaN(h)) return timeStr
+    if (Number.isNaN(h)) return timeStr
     if (timeFormat === '12h') return to12h(h, m)
     const str = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
     return locale?.startsWith('de') ? `${str} Uhr` : str
@@ -200,7 +200,7 @@ export function formatClockTime(value: string | null | undefined, is12h: boolean
   if (!value) return ''
   const norm = parseMeridiemTime(value) ?? value
   const [h, m] = norm.split(':').map(Number)
-  if (isNaN(h) || isNaN(m)) return value
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return value
   return is12h ? to12h(h, m) : norm
 }
 
@@ -285,7 +285,7 @@ export function formatMoneySum(
   // Breakdown: base first, then the rest in stable code order.
   const parts = [
     ...(groups.has(baseCur) ? [baseCur] : []),
-    ...foreign.sort(),
+    ...foreign.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)),
   ]
   return parts.map(cur => formatMoney(groups.get(cur)!, cur, locale, opts)).join(' + ')
 }
@@ -300,7 +300,7 @@ export function dayTotalCost(
 ): string | null {
   const da = assignments[String(dayId)] || []
   const entries = da.map(a => ({
-    amount: parseFloat(String(a.place?.price ?? '')) || 0,
+    amount: Number.parseFloat(String(a.place?.price ?? '')) || 0,
     currency: a.place?.currency || tripCurrency,
   }))
   return formatMoneySum(entries, base, locale, rates, { decimals: 0 })

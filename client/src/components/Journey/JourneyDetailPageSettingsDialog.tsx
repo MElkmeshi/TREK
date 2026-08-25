@@ -87,12 +87,12 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
   }
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center md:p-5 overscroll-none bg-[rgba(9,9,11,0.75)]" onClick={handleClose} onTouchMove={e => { if (e.target === e.currentTarget) e.preventDefault() }}>
-      <div className="bg-white dark:bg-zinc-900 rounded-t-2xl md:rounded-[24px] shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[980px] w-full max-h-[85vh] md:max-h-[90vh] flex flex-col overflow-hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} onClick={e => e.stopPropagation()}>
+    <div role="presentation" className="fixed inset-0 z-[200] flex items-end md:items-center justify-center md:p-5 overscroll-none bg-[rgba(9,9,11,0.75)]" onClick={handleClose} onTouchMove={e => { if (e.target === e.currentTarget) e.preventDefault() }}>
+      <div role="presentation" className="bg-white dark:bg-zinc-900 rounded-t-2xl md:rounded-[24px] shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[980px] w-full max-h-[85vh] md:max-h-[90vh] flex flex-col overflow-hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} onClick={e => e.stopPropagation()}>
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
           <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">{t('journey.settings.title')}</h2>
-          <button onClick={handleClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+          <button type="button" onClick={handleClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
             <X size={16} />
           </button>
         </div>
@@ -105,7 +105,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
           <div>
             <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.settings.coverImage')}</label>
             <input ref={coverRef} type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
-            <button
+            <button type="button"
               onClick={() => coverRef.current?.click()}
               className="w-full h-28 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700 flex items-center justify-center gap-2 text-[12px] text-zinc-500 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 overflow-hidden relative"
             >
@@ -156,7 +156,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
                     <div className="text-[12px] font-medium text-zinc-900 dark:text-white">{trip.title}</div>
                     <div className="text-[10px] text-zinc-500">{trip.place_count || 0} {t('journey.synced.places')}</div>
                   </div>
-                  <button
+                  <button type="button"
                     onClick={() => setUnlinkTarget({ trip_id: trip.trip_id, title: trip.title })}
                     className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500/20 dark:bg-red-500/15 dark:hover:bg-red-500/25 transition-colors"
                     title="Unlink trip"
@@ -166,7 +166,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
                 </div>
               ))}
               {journey.trips.length === 0 && <p className="text-[11px] text-zinc-400">{t('journey.trips.noTripsLinkedSettings')}</p>}
-              <button
+              <button type="button"
                 onClick={() => setShowAddTrip(true)}
                 className="w-full mt-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600 text-[12px] font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 dark:hover:border-zinc-500 dark:hover:text-zinc-300 transition-colors"
               >
@@ -187,7 +187,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
                   <div className="flex-1 text-[12px] font-medium text-zinc-900 dark:text-white">{c.username}</div>
                   <span className="shrink-0 rounded-full font-semibold uppercase" style={{ fontSize: 8.5, letterSpacing: '0.05em', padding: '2px 7px', ...(c.role === 'owner' ? { background: 'var(--vg-ink)', color: 'var(--vg-bg)' } : { background: 'color-mix(in srgb, var(--vg-ink3) 14%, transparent)', color: 'var(--vg-ink2)' }) }}>{c.role}</span>
                   {c.role !== 'owner' && (
-                    <button
+                    <button type="button"
                       onClick={async () => {
                         if (!window.confirm(t('journey.contributors.removeConfirm', { username: c.username }))) return
                         try {
@@ -207,7 +207,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
                   )}
                 </div>
               ))}
-              <button
+              <button type="button"
                 onClick={onOpenInvite}
                 className="w-full mt-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-600 text-[12px] font-medium text-zinc-500 hover:border-zinc-400 hover:text-zinc-700 dark:hover:border-zinc-500 dark:hover:text-zinc-300 transition-colors"
               >
@@ -228,7 +228,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
 
         {/* Footer */}
         <div className="flex items-center gap-1.5 px-4 md:px-6 py-4 pb-6 md:pb-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
-          <button
+          <button type="button"
             onClick={() => setShowDeleteConfirm(true)}
             aria-label={t('journey.settings.delete')}
             title={t('journey.settings.delete')}
@@ -237,7 +237,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
             <Trash2 size={14} />
             <span className="hidden md:inline">{t('journey.settings.delete')}</span>
           </button>
-          <button
+          <button type="button"
             onClick={handleArchiveToggle}
             disabled={archiving}
             aria-label={journey.status === 'archived' ? t('journey.settings.reopenJourney') : t('journey.settings.endJourney')}
@@ -247,8 +247,8 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
             {journey.status === 'archived' ? <ArchiveRestore size={14} /> : <Archive size={14} />}
             <span className="hidden md:inline">{journey.status === 'archived' ? t('journey.settings.reopenJourney') : t('journey.settings.endJourney')}</span>
           </button>
-          <button onClick={handleClose} className="h-10 px-4 rounded-full border border-zinc-200 dark:border-zinc-600 text-[13px] font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">{t('common.cancel')}</button>
-          <button onClick={handleSave} disabled={saving || !title.trim()} className="h-10 px-5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-40 transition-colors">
+          <button type="button" onClick={handleClose} className="h-10 px-4 rounded-full border border-zinc-200 dark:border-zinc-600 text-[13px] font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">{t('common.cancel')}</button>
+          <button type="button" onClick={handleSave} disabled={saving || !title.trim()} className="h-10 px-5 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-40 transition-colors">
             {saving ? t('common.saving') : t('common.save')}
           </button>
         </div>
@@ -278,7 +278,7 @@ export function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite,
       {/* Add Trip — sits inside the backdrop, so its clicks have to be kept
           from bubbling into the close/discard handler underneath */}
       {showAddTrip && (
-        <div onClick={e => e.stopPropagation()}>
+        <div role="presentation" onClick={e => e.stopPropagation()}>
           <AddTripDialog
             journeyId={journey.id}
             existingTripIds={journey.trips.map((t: any) => t.trip_id)}

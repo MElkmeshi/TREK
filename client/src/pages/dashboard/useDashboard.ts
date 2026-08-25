@@ -6,6 +6,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../../components/shared/Toast'
 import { getApiErrorMessage } from '../../types'
+import { localIsoToday } from './dashboardModel'
 import type { TripCreateRequest } from '@trek/shared'
 import {
   type DashboardTrip,
@@ -92,7 +93,7 @@ export function useDashboard() {
     loadTrips()
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = localIsoToday()
   // A trip the hero features on its own merit: one that is running, else the next
   // one coming up. Only that one is taken out of the grid below, so the same trip
   // isn't shown twice.

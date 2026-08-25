@@ -1,5 +1,5 @@
 // GENERATED — do not edit by hand.
-// Source: server/src/nest/plugins/protocol/envelope.ts
+// Source: server/src/nest/plugins/protocol/envelope.ts + server/src/plugin-event-sink.ts
 // Regenerate: node --import tsx server/scripts/gen-plugin-facts.ts
 
 export const HOOK_PERMISSION: Readonly<Record<string, string>> = {
@@ -316,3 +316,36 @@ export const USER_DATA_PERMISSION = 'hook:user-data';
 export const EVENTS_PERMISSION = 'events:subscribe';
 export const JOBS_PERMISSION = 'jobs:run';
 export const HTTP_OUTBOUND_PREFIX = 'http:outbound:';
+
+/**
+ * Core-event catalog. Delivery names are the WebSocket broadcast names,
+ * `<family>:<verb>` (e.g. `place:created`). A subscribed plugin receives
+ * `{event, tripId, entity?, entityId?, snapshot?}`; `snapshot` is delivered only
+ * when the plugin also holds EVENT_SNAPSHOT_GRANT[family]. Delete/reorder/bulk
+ * events carry no snapshot.
+ */
+export const EVENT_FAMILIES: readonly string[] = [
+  'accommodation',
+  'assignment',
+  'budget',
+  'day',
+  'dayNote',
+  'file',
+  'packing',
+  'place',
+  'reservation',
+  'trip',
+];
+
+export const EVENT_SNAPSHOT_GRANT: Readonly<Record<string, string>> = {
+  place: 'db:read:trips',
+  day: 'db:read:trips',
+  reservation: 'db:read:trips',
+  accommodation: 'db:read:trips',
+  assignment: 'db:read:trips',
+  trip: 'db:read:trips',
+  budget: 'db:read:costs',
+  packing: 'db:read:packing',
+  dayNote: 'db:read:daynotes',
+  file: 'db:read:files',
+};

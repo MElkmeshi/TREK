@@ -12,7 +12,7 @@ const { testDb } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
   const db = new Database(':memory:');
   db.exec(`CREATE TABLE plugins (
-    id TEXT PRIMARY KEY, status TEXT, enabled INTEGER DEFAULT 0, version TEXT, permissions TEXT DEFAULT '[]', operator_egress INTEGER DEFAULT 0, granted_permissions TEXT DEFAULT '',
+    id TEXT PRIMARY KEY, status TEXT, enabled INTEGER DEFAULT 0, version TEXT, api_version INTEGER DEFAULT 1, permissions TEXT DEFAULT '[]', operator_egress INTEGER DEFAULT 0, granted_permissions TEXT DEFAULT '',
     config TEXT DEFAULT '{}', dependencies TEXT DEFAULT '{}', capabilities TEXT DEFAULT '{}', last_error TEXT, updated_at TEXT,
     -- Activation refuses a plugin that declares no TREK range, so the fixtures default to a
     -- satisfied one: these tests are about permissions/dependencies, and every row would
@@ -148,9 +148,9 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     // first activate is covered by the 'counter' happy-path test above.)
   });
 
-  it('onModuleInit is a no-op when the runtime is disabled', () => {
+  it('onApplicationBootstrap is a no-op when the runtime is disabled', () => {
     process.env.TREK_PLUGINS_ENABLED = 'false';
-    expect(() => createPluginRuntime(new DatabaseService(dbConn)).onModuleInit()).not.toThrow();
+    expect(() => createPluginRuntime(new DatabaseService(dbConn)).onApplicationBootstrap()).not.toThrow();
     process.env.TREK_PLUGINS_ENABLED = 'true';
   });
 
@@ -246,26 +246,26 @@ describe('PluginRuntimeService (M2 end-to-end)', () => {
     expect(testDb.prepare("SELECT COUNT(*) c FROM plugin_user_erasure_queue WHERE plugin_id='counter' AND user_id=9").get()).toMatchObject({ c: 0 });
   });
 
-  it('onModuleInit boots every ENABLED plugin — even one left in error state', async () => {
+  it('onApplicationBootstrap boots every ENABLED plugin — even one left in error state', async () => {
     fs.mkdirSync(path.join(codeRoot, 'booter', 'server'), { recursive: true });
     fs.writeFileSync(path.join(codeRoot, 'booter', 'server', 'index.js'), 'module.exports = { async onLoad() {} };');
     // status='error' from a previous crash, but enabled=1 → must still boot
     testDb.prepare("INSERT INTO plugins (id, status, enabled, granted_permissions, config) VALUES ('booter','error',1,'[]','{}')").run();
 
     const rt = createPluginRuntime(new DatabaseService(dbConn));
-    rt.onModuleInit(); // fire-and-forget spawn
+    rt.onApplicationBootstrap(); // fire-and-forget spawn
     for (let i = 0; i < 40 && !rt.isActive('booter'); i++) await new Promise((r) => setTimeout(r, 50));
     expect(rt.isActive('booter')).toBe(true);
     await rt.deactivate('booter');
   });
 
-  it('onModuleInit does NOT boot a disabled plugin', async () => {
+  it('onApplicationBootstrap does NOT boot a disabled plugin', async () => {
     fs.mkdirSync(path.join(codeRoot, 'sleeper', 'server'), { recursive: true });
     fs.writeFileSync(path.join(codeRoot, 'sleeper', 'server', 'index.js'), 'module.exports = { async onLoad() {} };');
     testDb.prepare("INSERT INTO plugins (id, status, enabled, granted_permissions, config) VALUES ('sleeper','inactive',0,'[]','{}')").run();
 
     const rt = createPluginRuntime(new DatabaseService(dbConn));
-    rt.onModuleInit();
+    rt.onApplicationBootstrap();
     await new Promise((r) => setTimeout(r, 300));
     expect(rt.isActive('sleeper')).toBe(false);
   });
@@ -701,7 +701,7 @@ describe('TREK host-version gating', () => {
     process.env.APP_VERSION = '4.0.0';
     seedRanged('boot-broken', '>=3.2.0 <4.0.0', 1);
     const rt = createPluginRuntime(new DatabaseService(dbConn));
-    expect(() => rt.onModuleInit()).not.toThrow();
+    expect(() => rt.onApplicationBootstrap()).not.toThrow();
     for (let i = 0; i < 40; i++) {
       const row = testDb.prepare("SELECT enabled FROM plugins WHERE id='boot-broken'").get() as { enabled: number };
       if (row.enabled === 0) break;
@@ -720,5 +720,41 @@ describe('TREK host-version gating', () => {
     testDb.prepare("INSERT INTO plugins (id, status, enabled, permissions, granted_permissions, config, trek_range) VALUES ('both-wrong','inactive',0,'[\"db:own\"]','[]','{}','>=3.2.0 <4.0.0')").run();
     await expect(createPluginRuntime(new DatabaseService(dbConn)).activate('both-wrong')).rejects.toMatchObject({ code: 'TREK_VERSION_INCOMPATIBLE' });
     cleanup('both-wrong');
+  });
+});
+
+/**
+ * The activation gate also refuses a plugin whose manifest `apiVersion` is newer than
+ * what this TREK's plugin-API surface supports (`PLUGIN_API_VERSION`) — mirrors the
+ * TREK-version gate above, just for the plugin-API surface instead of the host version.
+ */
+describe('plugin-API version gating', () => {
+  const seedApi = (id: string, apiVersion: number) => {
+    fs.mkdirSync(path.join(codeRoot, id, 'server'), { recursive: true });
+    fs.writeFileSync(path.join(codeRoot, id, 'server', 'index.js'), 'module.exports = { async onLoad() {} };');
+    testDb
+      .prepare(
+        "INSERT INTO plugins (id, status, enabled, permissions, granted_permissions, config, trek_range, api_version) VALUES (?, 'inactive', 0, '[]', '[]', '{}', '>=3.0.0', ?)",
+      )
+      .run(id, apiVersion);
+  };
+  const cleanup = (...ids: string[]) => { for (const id of ids) testDb.prepare('DELETE FROM plugins WHERE id = ?').run(id); };
+
+  it('refuses to activate a plugin whose apiVersion this TREK does not support', async () => {
+    seedApi('future-api', 2);
+    const err = await createPluginRuntime(new DatabaseService(dbConn)).activate('future-api').catch((e) => e);
+    expect(err).toBeInstanceOf(PluginDependencyError);
+    expect(err).toMatchObject({ code: 'API_VERSION_INCOMPATIBLE' });
+    expect(err.message).toBe('plugin requires plugin-API v2; this TREK supports v1');
+    cleanup('future-api');
+  });
+
+  it('activates normally when apiVersion is within what this TREK supports', async () => {
+    seedApi('current-api', 1);
+    const rt = createPluginRuntime(new DatabaseService(dbConn));
+    await rt.activate('current-api');
+    expect(rt.isActive('current-api')).toBe(true);
+    await rt.deactivate('current-api');
+    cleanup('current-api');
   });
 });

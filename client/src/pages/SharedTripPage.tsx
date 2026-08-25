@@ -327,7 +327,7 @@ export default function SharedTripPage() {
 
         {/* Language picker - top right */}
         <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
-          <button
+          <button type="button"
             onClick={() => setShowLangPicker((v) => !v)}
             className="bg-[rgba(255,255,255,0.1)] text-[rgba(255,255,255,0.7)]"
             style={{
@@ -360,6 +360,7 @@ export default function SharedTripPage() {
             >
               {SUPPORTED_LANGUAGES.map((lang) => (
                 <button
+                  type="button"
                   key={lang.value}
                   onClick={() => {
                     // Set language locally without API call (shared page has no auth)
@@ -400,7 +401,7 @@ export default function SharedTripPage() {
             ...(permissions?.share_budget ? [{ id: 'budget', label: t('shared.tabBudget'), Icon: Wallet }] : []),
             ...(permissions?.share_collab ? [{ id: 'collab', label: t('shared.tabChat'), Icon: MessageCircle }] : []),
           ].map((tab) => (
-            <button
+            <button type="button"
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={activeTab === tab.id ? 'bg-[#111827] text-white' : 'bg-surface-card text-[#6b7280]'}
@@ -540,14 +541,21 @@ export default function SharedTripPage() {
                     className="border border-edge-faint bg-surface-card"
                     style={{ borderRadius: 14, overflow: 'hidden' }}
                   >
-                    <div
+                    <button
+                      type="button"
                       onClick={() => setSelectedDay(selectedDay === day.id ? null : day.id)}
+                      aria-expanded={selectedDay === day.id}
                       style={{
                         padding: '12px 16px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 10,
+                        width: '100%',
+                        background: 'none',
+                        border: 'none',
+                        textAlign: 'left',
+                        fontFamily: 'inherit',
                       }}
                     >
                       <div
@@ -632,7 +640,7 @@ export default function SharedTripPage() {
                       >
                         {dayPlaceCount} {t('shared.places')}
                       </span>
-                    </div>
+                    </button>
 
                     {selectedDay === day.id && merged.length > 0 && (
                       <div style={{ padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -796,6 +804,7 @@ export default function SharedTripPage() {
                                 {place.image_url ? (
                                   <img
                                     src={place.image_url}
+                                    alt=""
                                     style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }}
                                   />
                                 ) : (
@@ -1022,7 +1031,7 @@ export default function SharedTripPage() {
               return g;
             }, {});
             const sumIn = (items: any[]) =>
-              items.reduce((s: number, i: any) => s + convert(parseFloat(i.total_price) || 0, curOf(i)), 0);
+              items.reduce((s: number, i: any) => s + convert(Number.parseFloat(i.total_price) || 0, curOf(i)), 0);
             const total = sumIn(budget || []);
             return (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1099,7 +1108,7 @@ export default function SharedTripPage() {
                           style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}
                         >
                           {item.total_price
-                            ? `${convert(parseFloat(item.total_price) || 0, curOf(item)).toLocaleString(locale, { minimumFractionDigits: 2 })} ${base}`
+                            ? `${convert(Number.parseFloat(item.total_price) || 0, curOf(item)).toLocaleString(locale, { minimumFractionDigits: 2 })} ${base}`
                             : '—'}
                         </span>
                       </div>
@@ -1183,6 +1192,7 @@ export default function SharedTripPage() {
                         {msg.avatar ? (
                           <img
                             src={avatarSrc(msg.avatar)!}
+                            alt=""
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           />
                         ) : (

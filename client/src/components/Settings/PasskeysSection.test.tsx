@@ -344,7 +344,7 @@ describe('PasskeysSection', () => {
     await user.type(screen.getByDisplayValue('MacBook'), '-x');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    await screen.findByText('Name taken');
+    expect(await screen.findByText('Name taken')).toBeInTheDocument();
   });
 
   it('FE-COMP-PASSKEYS-020: deleting asks for the password, calls the API and can be cancelled', async () => {

@@ -1007,7 +1007,7 @@ describe('NotificationsTab — ntfy credentials', () => {
     await screen.findByDisplayValue('alerts');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    await screen.findByText('Error');
+    expect(await screen.findByText('Error')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTIFICATIONS-019: Clear wipes the stored token and hides the button', async () => {
@@ -1073,7 +1073,7 @@ describe('NotificationsTab — ntfy credentials', () => {
     await screen.findByDisplayValue('alerts');
     await user.click(screen.getByRole('button', { name: 'Test' }));
 
-    await screen.findByText('Topic not found');
+    expect(await screen.findByText('Topic not found')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTIFICATIONS-023: a network error during the test falls back to the generic message', async () => {
@@ -1087,7 +1087,7 @@ describe('NotificationsTab — ntfy credentials', () => {
     await screen.findByDisplayValue('alerts');
     await user.click(screen.getByRole('button', { name: 'Test' }));
 
-    await screen.findByText('Test ntfy notification failed');
+    expect(await screen.findByText('Test ntfy notification failed')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTIFICATIONS-024: without a topic the test button stays disabled', async () => {
@@ -1141,7 +1141,7 @@ describe('NotificationsTab — webhook and channel-test failures', () => {
     await screen.findByRole('textbox');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    await screen.findByText('Error');
+    expect(await screen.findByText('Error')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTIFICATIONS-027: a network error during the webhook test falls back to the generic message', async () => {
@@ -1154,7 +1154,7 @@ describe('NotificationsTab — webhook and channel-test failures', () => {
     await screen.findByRole('textbox');
     await user.click(screen.getByRole('button', { name: 'Test' }));
 
-    await screen.findByText('Test webhook failed');
+    expect(await screen.findByText('Test webhook failed')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTIFICATIONS-028: a refused plugin channel test reports the returned error', async () => {
@@ -1169,7 +1169,7 @@ describe('NotificationsTab — webhook and channel-test failures', () => {
 
     await user.click(await screen.findByRole('button', { name: /send test/i }));
 
-    await screen.findByText('Gotify rejected the token');
+    expect(await screen.findByText('Gotify rejected the token')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTIFICATIONS-029: a plugin channel test that errors out falls back to the generic message', async () => {
@@ -1182,6 +1182,6 @@ describe('NotificationsTab — webhook and channel-test failures', () => {
 
     await user.click(await screen.findByRole('button', { name: /send test/i }));
 
-    await screen.findByText('Test failed.');
+    expect(await screen.findByText('Test failed.')).toBeInTheDocument();
   });
 });

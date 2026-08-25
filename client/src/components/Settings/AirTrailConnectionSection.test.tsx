@@ -177,7 +177,7 @@ describe('AirTrailConnectionSection', () => {
     await screen.findByDisplayValue('https://air.example.com');
     await user.click(screen.getByRole('button', { name: /^Save$/ }));
 
-    await screen.findByText('Not connected');
+    expect(await screen.findByText('Not connected')).toBeInTheDocument();
   });
 
   it('FE-COMP-AIRTRAIL-010: a rejected save surfaces the server error message', async () => {
@@ -193,7 +193,7 @@ describe('AirTrailConnectionSection', () => {
     await screen.findByDisplayValue('https://air.example.com');
     await user.click(screen.getByRole('button', { name: /^Save$/ }));
 
-    await screen.findByText('Instance unreachable');
+    expect(await screen.findByText('Instance unreachable')).toBeInTheDocument();
   });
 
   it('FE-COMP-AIRTRAIL-011: a save failure without a server message falls back to the generic error', async () => {
@@ -207,7 +207,7 @@ describe('AirTrailConnectionSection', () => {
     await screen.findByDisplayValue('https://air.example.com');
     await user.click(screen.getByRole('button', { name: /^Save$/ }));
 
-    await screen.findByText('Could not save the connection');
+    expect(await screen.findByText('Could not save the connection')).toBeInTheDocument();
   });
 
   it('FE-COMP-AIRTRAIL-012: Save is locked while the request is in flight', async () => {
@@ -265,7 +265,7 @@ describe('AirTrailConnectionSection', () => {
     await screen.findByDisplayValue('https://air.example.com');
     await user.click(screen.getByRole('button', { name: /Test connection/ }));
 
-    await screen.findByText('Connected — 0 flight(s) found');
+    expect(await screen.findByText('Connected — 0 flight(s) found')).toBeInTheDocument();
   });
 
   it('FE-COMP-AIRTRAIL-015: a refused test shows the returned error and keeps the badge off', async () => {

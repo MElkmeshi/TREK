@@ -55,7 +55,7 @@ beforeEach(() => {
 describe('CollabPolls', () => {
   it('FE-COMP-POLLS-001: renders empty state when no polls exist', async () => {
     render(<CollabPolls {...defaultProps} />);
-    await screen.findByText(/no polls yet|collab\.polls\.empty/i);
+    expect(await screen.findByText(/no polls yet|collab\.polls\.empty/i)).toBeInTheDocument();
   });
 
   it('FE-COMP-POLLS-002: shows loading spinner initially', async () => {
@@ -79,7 +79,7 @@ describe('CollabPolls', () => {
       ),
     );
     render(<CollabPolls {...defaultProps} />);
-    await screen.findByText('Best destination?');
+    expect(await screen.findByText('Best destination?')).toBeInTheDocument();
   });
 
   it('FE-COMP-POLLS-004: renders poll options', async () => {
@@ -108,7 +108,7 @@ describe('CollabPolls', () => {
     await screen.findByText(/no polls yet|collab\.polls\.empty/i);
     await user.click(screen.getByRole('button', { name: /new/i }));
     // Modal has a question placeholder input
-    await screen.findByPlaceholderText(/what should we do/i);
+    expect(await screen.findByPlaceholderText(/what should we do/i)).toBeInTheDocument();
   });
 
   it('FE-COMP-POLLS-007: create modal requires question and at least 2 options to enable submit', async () => {
@@ -153,7 +153,7 @@ describe('CollabPolls', () => {
     await user.type(optionInputs[1], 'Japanese');
 
     await user.click(screen.getByRole('button', { name: /create|collab\.polls\.create/i }));
-    await screen.findByText('Where to eat?');
+    expect(await screen.findByText('Where to eat?')).toBeInTheDocument();
   });
 
   it('FE-COMP-POLLS-009: voting on an option calls POST vote API', async () => {
@@ -188,7 +188,7 @@ describe('CollabPolls', () => {
       ),
     );
     render(<CollabPolls {...defaultProps} />);
-    await screen.findByText(/closed/i);
+    expect(await screen.findByText(/closed/i)).toBeInTheDocument();
   });
 
   it('FE-COMP-POLLS-011: closed poll options are disabled (cannot vote)', async () => {
@@ -236,7 +236,7 @@ describe('CollabPolls', () => {
     const listener = (addListener as ReturnType<typeof vi.fn>).mock.calls[0][0];
     listener({ tripId: 1, type: 'collab:poll:created', poll: buildPoll({ id: 77, question: 'Live poll?' }) });
 
-    await screen.findByText('Live poll?');
+    expect(await screen.findByText('Live poll?')).toBeInTheDocument();
   });
 
   it('FE-COMP-POLLS-014: WebSocket collab:poll:deleted event removes poll', async () => {
@@ -337,7 +337,7 @@ describe('CollabPolls details', () => {
   it('FE-W5CPL-005: a poll served as a bare array is rendered', async () => {
     servePolls([buildPoll({ question: 'Array shaped?' })]);
     render(<CollabPolls {...defaultProps} />);
-    await screen.findByText('Array shaped?');
+    expect(await screen.findByText('Array shaped?')).toBeInTheDocument();
   });
 
   it('FE-W5CPL-006: options without a voters array count as zero votes', async () => {
@@ -484,13 +484,13 @@ describe('CollabPolls details', () => {
       http.get('/api/trips/1/collab/polls', () => new HttpResponse(null, { status: 500 })),
     );
     render(<CollabPolls {...defaultProps} />);
-    await screen.findByText(/no polls yet|collab\.polls\.empty/i);
+    expect(await screen.findByText(/no polls yet|collab\.polls\.empty/i)).toBeInTheDocument();
   });
 
   it('FE-W5CPL-028: a payload without a polls key yields an empty list', async () => {
     servePolls({});
     render(<CollabPolls {...defaultProps} />);
-    await screen.findByText(/no polls yet|collab\.polls\.empty/i);
+    expect(await screen.findByText(/no polls yet|collab\.polls\.empty/i)).toBeInTheDocument();
   });
 
   it('FE-W5CPL-015: a failing close shows an error and leaves the poll open', async () => {

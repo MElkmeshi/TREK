@@ -1,5 +1,6 @@
 // FE-JRN-LISTWIRE-001 to FE-JRN-LISTWIRE-014
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { localIsoDate } from '../utils/localDate';
 import { render, screen, fireEvent } from '../../tests/helpers/render';
 import type { Journey } from '../store/journeyStore';
 import JourneyPage from './JourneyPage';
@@ -182,7 +183,7 @@ describe('JourneyPage wiring', () => {
   });
 
   it('FE-JRN-LISTWIRE-014: modal trips render their status and toggle their selection', () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = localIsoDate(); // local — the status chips classify against the wall clock
     const availableTrips = [
       { id: 1, title: 'Past trip', start_date: '2020-01-01', end_date: '2020-01-05', place_count: 3, cover_image: '/uploads/t.jpg' },
       { id: 2, title: 'Running trip', start_date: today, end_date: '2099-01-01', place_count: 1 },

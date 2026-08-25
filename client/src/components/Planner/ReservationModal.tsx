@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { localIsoDate } from '../../utils/localDate'
 import { useParams } from 'react-router'
 import apiClient from '../../api/client'
 import { useTripStore } from '../../store/tripStore'
@@ -117,7 +118,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
   // constrain to trip days via their day dropdowns. Falls back to no limit when
   // the trip has no dated days.
   const tripDateRange = useMemo(() => {
-    const dates = (days || []).map(d => d.date).filter((d): d is string => !!d).sort()
+    const dates = (days || []).map(d => d.date).filter((d): d is string => !!d).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
     return { min: dates[0], max: dates[dates.length - 1] }
   }, [days])
 
@@ -480,7 +481,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                   onChange={tm => {
                     const [d] = (form.reservation_time || '').split('T')
                     const selectedDay = days.find(dy => dy.id === selectedDayId)
-                    const date = d || selectedDay?.date || new Date().toISOString().split('T')[0]
+                    const date = d || selectedDay?.date || localIsoDate()
                     set('reservation_time', tm ? `${date}T${tm}` : date)
                   }}
                 />
@@ -697,7 +698,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
               <div key={f.id} className="bg-surface-secondary" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8 }}>
                 <FileText size={12} className="text-content-muted" style={{ flexShrink: 0 }} />
                 <span className="text-content-secondary" style={{ flex: 1, fontSize: 'calc(12px * var(--fs-scale-body, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
-                <a href="#" onClick={(e) => { e.preventDefault(); openFile(f.url).catch(() => {}) }} className="text-content-faint" style={{ display: 'flex', flexShrink: 0, cursor: 'pointer' }}><ExternalLink size={11} /></a>
+                <button type="button" onClick={() => { openFile(f.url).catch(() => {}) }} className="text-content-faint" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 0, flexShrink: 0 }}><ExternalLink size={11} /></button>
                 <button type="button" onClick={async () => {
                   if (f.reservation_id === reservation?.id) {
                     try { await apiClient.put(`/trips/${tripId}/files/${f.id}`, { reservation_id: null }) } catch { toast.error(t('reservations.toast.updateError')) }

@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import Database from 'better-sqlite3';
 import { readEnv } from '../app-config';
+import { DEMO_PASS } from '../nest/common/demo';
 // Static like in demo-reset.job.ts: the module top is inert, everything that
 // touches the database happens inside the functions.
 import { saveBaseline, hasBaseline } from './demo-reset';
@@ -10,7 +11,6 @@ function seedDemoData(db: Database.Database): { adminId: number; demoId: number 
   const ADMIN_EMAIL = readEnv().demo.adminEmailRaw || 'admin@trek.app';
   const ADMIN_PASS = readEnv().demo.adminPass;
   const DEMO_EMAIL = 'demo@trek.app';
-  const DEMO_PASS = 'demo12345';
 
   // Create admin user if not exists
   let admin = db.prepare('SELECT id FROM users WHERE email = ?').get(ADMIN_EMAIL) as { id: number } | undefined;

@@ -1,4 +1,4 @@
-import { Injectable, type OnModuleInit, type OnModuleDestroy } from '@nestjs/common';
+import { Injectable, type OnApplicationBootstrap, type OnModuleDestroy } from '@nestjs/common';
 import semver from 'semver';
 import { DatabaseService } from '../database/database.service';
 import { pluginsEnabled } from './kill-switch';
@@ -33,7 +33,7 @@ import type { PluginDependency } from './install/manifest';
 import type { VersionMismatch, PluginDepRow } from './dependencies';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, enableOrder, findDependentsTransitive, DependencyCycleError } from './dependencies';
 
-import { HTTP_OUTBOUND_PREFIX as HTTP_OUTBOUND } from './protocol/envelope';
+import { HTTP_OUTBOUND_PREFIX as HTTP_OUTBOUND, PLUGIN_API_VERSION } from './protocol/envelope';
 
 // Mirrors HOST_RE in install/manifest.ts: an exact hostname or a `*.`-prefixed wildcard
 // with a real multi-label suffix. Rejects a bare `*`, a whole-TLD wildcard, a scheme and
@@ -85,7 +85,9 @@ export type PluginDependencyCode =
   /** The plugin's declared TREK range doesn't admit the running host. */
   | 'TREK_VERSION_INCOMPATIBLE'
   /** The plugin never declared a range, so we can't know that it does. */
-  | 'TREK_VERSION_UNKNOWN';
+  | 'TREK_VERSION_UNKNOWN'
+  /** The plugin's manifest apiVersion is newer than this TREK's plugin-API surface. */
+  | 'API_VERSION_INCOMPATIBLE';
 
 /**
  * Thrown when a plugin can't activate because a required addon is disabled, a declared
@@ -119,7 +121,7 @@ export class PluginDependencyError extends Error {
  */
 
 @Injectable()
-export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
+export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDestroy {
   // The rpc-host factory is bound to `this` as the inter-plugin router, so a
   // plugin's ctx.plugins.call / ctx.events.emit resolve through callPlugin/
   // emitPluginEvent below (which own the dependency-edge authorization). The
@@ -180,7 +182,15 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     return this.dbs.connection;
   }
 
-  onModuleInit(): void {
+  // onApplicationBootstrap, NOT onModuleInit: boot activation builds each plugin's
+  // rpc host synchronously, and the host snapshots PluginRpcRegistryService at
+  // construction (bindInto). Same-module onModuleInit hooks fire in providers-array
+  // declaration order, where this service precedes the registry — so booting from
+  // onModuleInit bound every host to a still-empty registry and every enabled
+  // plugin's first RPC after a restart came back PERMISSION_DENIED (pinned by
+  // tests/integration/plugins/boot-registry-order.test.ts). onApplicationBootstrap
+  // is guaranteed to run after EVERY module's onModuleInit, registry scan included.
+  onApplicationBootstrap(): void {
     if (!pluginsEnabled()) return;
     // If a restore staged plugin trees, swap them into place NOW — before we open any
     // plugin DB below. This is where a restored backup's plugin data/code actually
@@ -303,7 +313,7 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
     // a drain, and a pass awaits per-row delivery (up to the invoke timeout each), so
     // running two concurrently would select the SAME rows and deliver an erasure twice.
     // A caller that awaits still waits for a full pass (the in-flight one).
-    if (this.drainInFlight) return this.drainInFlight;
+    if (this.drainInFlight !== null) return this.drainInFlight;
     this.drainInFlight = this.runDrainOnce().finally(() => { this.drainInFlight = null; });
     return this.drainInFlight;
   }
@@ -478,11 +488,12 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
   /**
    * Read-only activation gate for one plugin — throws (without mutating) if it may
    * not activate. Checks run most- to least-severe: TREK-version compatibility →
-   * permission re-consent → required addon disabled → missing/mismatched plugin dependency.
+   * plugin-API version compatibility → permission re-consent → required addon disabled →
+   * missing/mismatched plugin dependency.
    */
   private assertActivatable(id: string, installed: Map<string, PluginDepRow>, consentWiden: boolean): void {
-    const row = this.db.prepare('SELECT permissions, granted_permissions, dependencies, trek_range FROM plugins WHERE id = ?').get(id) as
-      | { permissions: string; granted_permissions: string; dependencies: string | null; trek_range: string | null }
+    const row = this.db.prepare('SELECT permissions, granted_permissions, dependencies, trek_range, api_version FROM plugins WHERE id = ?').get(id) as
+      | { permissions: string; granted_permissions: string; dependencies: string | null; trek_range: string | null; api_version: number | null }
       | undefined;
     if (!row) throw new Error(`plugin ${id} not found`);
 
@@ -503,6 +514,16 @@ export class PluginRuntimeService implements OnModuleInit, OnModuleDestroy {
         `plugin ${id} requires TREK ${row.trek_range} — this is TREK ${hostVersion()}`,
         'TREK_VERSION_INCOMPATIBLE',
         { trekRange: row.trek_range, hostVersion: hostVersion() },
+      );
+    }
+    // Same reasoning as the TREK-version gate above: a plugin whose manifest apiVersion
+    // outpaces this TREK's plugin-API surface can never run correctly, so it must be
+    // refused before any consent dialog is offered.
+    const apiVersion = row.api_version ?? 1;
+    if (apiVersion > PLUGIN_API_VERSION) {
+      throw new PluginDependencyError(
+        `plugin requires plugin-API v${apiVersion}; this TREK supports v${PLUGIN_API_VERSION}`,
+        'API_VERSION_INCOMPATIBLE',
       );
     }
 

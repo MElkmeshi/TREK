@@ -142,7 +142,7 @@ describe('MSettingsGeneral', () => {
     render(<><ToastContainer /><MSettingsGeneral /></>);
 
     await user.click(screen.getByRole('button', { name: '°F Fahrenheit' }));
-    await screen.findByText('Error saving setting');
+    expect(await screen.findByText('Error saving setting')).toBeInTheDocument();
   });
 
   it('FE-MOB-SET-011: a non-Error rejection falls back to the generic message', async () => {
@@ -154,7 +154,7 @@ describe('MSettingsGeneral', () => {
     render(<><ToastContainer /><MSettingsGeneral /></>);
 
     await user.click(screen.getByRole('button', { name: '°F Fahrenheit' }));
-    await screen.findByText('Error');
+    expect(await screen.findByText('Error')).toBeInTheDocument();
   });
 
   it('FE-MOB-SET-012: the startup card defaults to the dashboard and hides the tab row', () => {

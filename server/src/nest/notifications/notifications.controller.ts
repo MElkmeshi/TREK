@@ -132,8 +132,8 @@ export class NotificationsController {
     @Query('unread_only') unreadOnly?: string,
   ) {
     return this.notifications.listInApp(user.id, {
-      limit: Math.min(parseInt(limit as string) || 20, 50),
-      offset: parseInt(offset as string) || 0,
+      limit: Math.min(Number.parseInt(limit as string) || 20, 50),
+      offset: Number.parseInt(offset as string) || 0,
       unreadOnly: unreadOnly === 'true',
     });
   }
@@ -197,8 +197,8 @@ export class NotificationsController {
 
   /** parseInt + the legacy "Invalid id" 400 guard, shared by the /:id handlers. */
   private parseId(idParam: string): number {
-    const id = parseInt(idParam);
-    if (isNaN(id)) {
+    const id = Number.parseInt(idParam);
+    if (Number.isNaN(id)) {
       throw new HttpException({ error: 'Invalid id' }, 400);
     }
     return id;

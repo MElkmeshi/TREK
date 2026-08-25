@@ -53,7 +53,7 @@ describe('CollabChat', () => {
 
   it('FE-COMP-CHAT-002: shows empty state when no messages', async () => {
     render(<CollabChat {...defaultProps} />);
-    await screen.findByText('Start the conversation');
+    expect(await screen.findByText('Start the conversation')).toBeInTheDocument();
   });
 
   it('FE-COMP-CHAT-003: shows message input placeholder', async () => {
@@ -85,7 +85,7 @@ describe('CollabChat', () => {
       )
     );
     render(<CollabChat {...defaultProps} />);
-    await screen.findByText('Hello world!');
+    expect(await screen.findByText('Hello world!')).toBeInTheDocument();
   });
 
   it('FE-COMP-CHAT-006: typing in input updates text field', async () => {
@@ -599,7 +599,7 @@ describe('CollabChat', () => {
     await screen.findByText('New 100');
     const loadMoreBtn = screen.getByRole('button', { name: /load/i });
     await user.click(loadMoreBtn);
-    await screen.findByText('Older message');
+    expect(await screen.findByText('Older message')).toBeInTheDocument();
   });
 
   it('FE-COMP-CHAT-033: clicking delete on own message marks it as deleted', async () => {

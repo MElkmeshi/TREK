@@ -170,7 +170,7 @@ describe('MLlmConnectionSection', () => {
     renderSection();
 
     await user.click(screen.getByRole('button', { name: /Save/ }));
-    await screen.findByText('Could not save AI settings');
+    expect(await screen.findByText('Could not save AI settings')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETLLM-013: a stored local provider falls back to OpenAI without saving anything', () => {

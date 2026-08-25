@@ -48,26 +48,27 @@ function VacayPageDesktop(): React.ReactElement {
         </div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-0.5">
-            <button onClick={handleAddPrevYear} className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors" style={{ color: 'var(--vg-ink3)' }} title={t('vacay.addPrevYear')}>
+            <button type="button" onClick={handleAddPrevYear} className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors" style={{ color: 'var(--vg-ink3)' }} title={t('vacay.addPrevYear')}>
               <Plus size={14} />
             </button>
-            <button onClick={() => { const idx = years.indexOf(selectedYear); if (idx > 0) setSelectedYear(years[idx - 1]) }} disabled={years.indexOf(selectedYear) <= 0} className="w-7 h-7 rounded-lg flex items-center justify-center disabled:opacity-20 transition-colors" style={{ color: 'var(--vg-ink3)' }}>
+            <button type="button" onClick={() => { const idx = years.indexOf(selectedYear); if (idx > 0) setSelectedYear(years[idx - 1]) }} disabled={years.indexOf(selectedYear) <= 0} className="w-7 h-7 rounded-lg flex items-center justify-center disabled:opacity-20 transition-colors" style={{ color: 'var(--vg-ink3)' }}>
               <ChevronLeft size={16} />
             </button>
           </div>
           <span className="tabular-nums" style={{ fontSize: 22, fontWeight: 700, color: 'var(--vg-ink)' }}>{selectedYear}</span>
           <div className="flex items-center gap-0.5">
-            <button onClick={() => { const idx = years.indexOf(selectedYear); if (idx < years.length - 1) setSelectedYear(years[idx + 1]) }} disabled={years.indexOf(selectedYear) >= years.length - 1} className="w-7 h-7 rounded-lg flex items-center justify-center disabled:opacity-20 transition-colors" style={{ color: 'var(--vg-ink3)' }}>
+            <button type="button" onClick={() => { const idx = years.indexOf(selectedYear); if (idx < years.length - 1) setSelectedYear(years[idx + 1]) }} disabled={years.indexOf(selectedYear) >= years.length - 1} className="w-7 h-7 rounded-lg flex items-center justify-center disabled:opacity-20 transition-colors" style={{ color: 'var(--vg-ink3)' }}>
               <ChevronRight size={16} />
             </button>
-            <button onClick={handleAddNextYear} className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors" style={{ color: 'var(--vg-ink3)' }} title={t('vacay.addYear')}>
+            <button type="button" onClick={handleAddNextYear} className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors" style={{ color: 'var(--vg-ink3)' }} title={t('vacay.addYear')}>
               <Plus size={14} />
             </button>
           </div>
         </div>
         <div className="grid grid-cols-4 gap-1.5">
           {years.map(y => (
-            <div key={y} onClick={() => setSelectedYear(y)}
+            <div key={y} role="button" tabIndex={0} onClick={() => setSelectedYear(y)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedYear(y) } }}
               className="group relative rounded-[9px] text-center cursor-pointer transition-[background-color,color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]"
               style={{
                 padding: '7px 0',
@@ -78,10 +79,11 @@ function VacayPageDesktop(): React.ReactElement {
               }}>
               {y}
               {years.length > 1 && (
-                <span onClick={e => { e.stopPropagation(); setDeleteYear(y); setShowMobileSidebar(false) }}
+                <button type="button" aria-label={t('vacay.removeYear')}
+                  onClick={e => { e.stopPropagation(); setDeleteYear(y); setShowMobileSidebar(false) }}
                   className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-red-500 text-white text-[7px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                   <Minus size={7} />
-                </span>
+                </button>
               )}
             </div>
           ))}
@@ -129,13 +131,13 @@ function VacayPageDesktop(): React.ReactElement {
               <h1 className="text-lg font-bold text-content">{t('admin.addons.catalog.vacay.name')}</h1>
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <button type="button"
                 onClick={() => setShowMobileSidebar(true)}
                 className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors bg-surface-secondary text-content-muted"
               >
                 <SlidersHorizontal size={14} />
               </button>
-              <button
+              <button type="button"
                 onClick={() => setShowSettings(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors bg-surface-secondary text-content-muted"
               >
@@ -149,7 +151,7 @@ function VacayPageDesktop(): React.ReactElement {
             {/* Desktop Sidebar */}
             <div className="hidden lg:flex w-[300px] shrink-0 flex-col gap-[12px] sticky top-[84px]">
               {sidebarContent}
-              <button
+              <button type="button"
                 onClick={() => setShowSettings(true)}
                 className="vg-card flex items-center justify-center gap-2.5 rounded-[18px] transition-transform hover:-translate-y-px"
                 style={{ padding: '13px 16px', fontSize: 14, fontWeight: 600, color: 'var(--vg-ink)', cursor: 'pointer' }}
@@ -168,7 +170,7 @@ function VacayPageDesktop(): React.ReactElement {
       {/* Mobile Sidebar Drawer */}
       {showMobileSidebar && createPortal(
         <div className="fixed inset-0 lg:hidden" style={{ zIndex: 99980 }}>
-          <div className="absolute inset-0 bg-[rgba(0,0,0,0.4)]" onClick={() => setShowMobileSidebar(false)} />
+          <div className="absolute inset-0 bg-[rgba(0,0,0,0.4)]" role="presentation" onClick={() => setShowMobileSidebar(false)} />
           <div className="absolute left-0 top-0 bottom-0 w-[280px] overflow-y-auto p-3 flex flex-col gap-3 bg-surface"
             style={{ boxShadow: '4px 0 24px rgba(0,0,0,0.15)', animation: 'slideInLeft 0.2s ease-out' }}>
             {sidebarContent}
@@ -197,10 +199,10 @@ function VacayPageDesktop(): React.ReactElement {
             </div>
           </div>
           <div className="flex gap-3 justify-end">
-            <button onClick={() => setDeleteYear(null)} className="px-4 py-2 text-sm rounded-lg transition-colors border text-content-muted border-edge">
+            <button type="button" onClick={() => setDeleteYear(null)} className="px-4 py-2 text-sm rounded-lg transition-colors border text-content-muted border-edge">
               {t('common.cancel')}
             </button>
-            <button onClick={async () => { await removeYear(deleteYear); setDeleteYear(null) }} className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors">
+            <button type="button" onClick={async () => { await removeYear(deleteYear); setDeleteYear(null) }} className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors">
               {t('vacay.remove')}
             </button>
           </div>
@@ -232,11 +234,11 @@ function VacayPageDesktop(): React.ReactElement {
                 <InfoItem icon={Unlink} text={t('vacay.fuseInfo5')} />
               </div>
               <div className="px-6 pb-6 flex gap-3">
-                <button onClick={() => declineInvite(inv.plan_id)}
+                <button type="button" onClick={() => declineInvite(inv.plan_id)}
                   className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors border text-content-muted border-edge">
                   {t('vacay.decline')}
                 </button>
-                <button onClick={() => acceptInvite(inv.plan_id)}
+                <button type="button" onClick={() => acceptInvite(inv.plan_id)}
                   className="flex-1 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors bg-content text-surface-card">
                   {t('vacay.acceptFusion')}
                 </button>

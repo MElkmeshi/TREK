@@ -60,7 +60,7 @@ describe('IntegrationsTab', () => {
   it('FE-COMP-INTEGRATIONS-003: MCP section is visible when mcp addon is enabled', async () => {
     enableMcp();
     render(<IntegrationsTab />);
-    await screen.findByText('MCP Configuration');
+    expect(await screen.findByText('MCP Configuration')).toBeInTheDocument();
   });
 
   it('FE-COMP-INTEGRATIONS-004: MCP endpoint URL is displayed', async () => {
@@ -92,7 +92,7 @@ describe('IntegrationsTab', () => {
     render(<IntegrationsTab />);
     await screen.findByText('MCP Configuration');
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
-    await screen.findByText('No tokens yet. Create one to connect MCP clients.');
+    expect(await screen.findByText('No tokens yet. Create one to connect MCP clients.')).toBeInTheDocument();
   });
 
   it('FE-COMP-INTEGRATIONS-007: token list renders when tokens exist', async () => {
@@ -112,7 +112,7 @@ describe('IntegrationsTab', () => {
     await screen.findByText('MCP Configuration');
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     await screen.findByText('My Token');
-    await screen.findByText('Other Token');
+    expect(await screen.findByText('Other Token')).toBeInTheDocument();
   });
 
   it('FE-COMP-INTEGRATIONS-008: clicking "Create New Token" button opens the modal', async () => {
@@ -123,7 +123,7 @@ describe('IntegrationsTab', () => {
     await user.click(screen.getByRole('button', { name: /API Tokens/i }));
     const createBtn = screen.getByRole('button', { name: /Create New Token/i });
     await user.click(createBtn);
-    await screen.findByText('Create API Token');
+    expect(await screen.findByText('Create API Token')).toBeInTheDocument();
   });
 
   it('FE-COMP-INTEGRATIONS-009: Create button in modal is disabled when name is empty', async () => {
@@ -591,7 +591,7 @@ describe('IntegrationsTab', () => {
     // Confirm — button text is 'Rotate'
     const rotateBtns = screen.getAllByRole('button', { name: /^Rotate$/i });
     await user.click(rotateBtns[rotateBtns.length - 1]);
-    await screen.findByText(/new-rotated-secret/);
+    expect(await screen.findByText(/new-rotated-secret/)).toBeInTheDocument();
   });
 
   it('FE-COMP-INTEGRATIONS-030: revoke OAuth session removes it from list', async () => {
@@ -649,7 +649,7 @@ describe('IntegrationsTab', () => {
     await user.type(screen.getByPlaceholderText(/Claude Web, My MCP App/i), 'Fail Client');
     await user.type(screen.getByPlaceholderText(/https:\/\/your-app/i), 'http://localhost');
     await user.click(screen.getByRole('button', { name: /Register Client/i }));
-    await screen.findByText(/Failed to register/i);
+    expect(await screen.findByText(/Failed to register/i)).toBeInTheDocument();
   });
 });
 
@@ -893,7 +893,7 @@ describe('IntegrationsTab – failure toasts', () => {
     await user.type(screen.getByPlaceholderText(/Claude Desktop/i), 'Doomed');
     await user.click(screen.getByRole('button', { name: /^Create Token$/i }));
 
-    await screen.findByText('Failed to create token');
+    expect(await screen.findByText('Failed to create token')).toBeInTheDocument();
   });
 
   it('FE-COMP-INTEGRATIONS-045: a failing token deletion toasts and keeps the token', async () => {
@@ -934,7 +934,7 @@ describe('IntegrationsTab – failure toasts', () => {
     await user.click(screen.getByTitle('Rotate Secret'));
     const rotateBtns = await screen.findAllByRole('button', { name: /^Rotate$/i });
     await user.click(rotateBtns[rotateBtns.length - 1]);
-    await screen.findByText('Failed to rotate client secret');
+    expect(await screen.findByText('Failed to rotate client secret')).toBeInTheDocument();
   });
 
   it('FE-COMP-INTEGRATIONS-047: a failing session revoke toasts and keeps the session', async () => {

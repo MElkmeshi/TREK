@@ -1,5 +1,5 @@
 import semver from 'semver';
-import { isKnownPermission } from '../protocol/envelope';
+import { isKnownPermission, PLUGIN_API_VERSION } from '../protocol/envelope';
 import { isValidTrekRange, minTrekOf } from './host-compat';
 import type { NotifEventType } from '../../notifications/notification-events';
 
@@ -148,7 +148,7 @@ export class ManifestError extends Error {}
 
 /** JSON.parse that tolerates a UTF-8 BOM (0xFEFF) — manifests written on Windows often carry one. */
 export function parseJsonText(text: string): unknown {
-  return JSON.parse(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text);
+  return JSON.parse(text.codePointAt(0) === 0xfeff ? text.slice(1) : text);
 }
 
 /**
@@ -220,11 +220,21 @@ export function parseManifest(raw: unknown, opts?: { requireTrek?: boolean }): P
         : 'missing "trek" version range — declare the TREK versions this plugin supports, e.g. ">=3.2.0 <4.0.0"',
     );
   }
+
+  const rawApi = m.apiVersion;
+  if (rawApi !== undefined && (typeof rawApi !== 'number' || !Number.isInteger(rawApi) || rawApi < 1)) {
+    throw new ManifestError('apiVersion must be a positive integer');
+  }
+  const apiVersion = (rawApi as number | undefined) ?? 1;
+  if (opts?.requireTrek && apiVersion > PLUGIN_API_VERSION) {
+    throw new ManifestError(`plugin requires plugin-API v${apiVersion}; this TREK supports v${PLUGIN_API_VERSION}`);
+  }
+
   return {
     id,
     name: str(m.name, 'name'),
     version,
-    apiVersion: typeof m.apiVersion === 'number' ? m.apiVersion : 1,
+    apiVersion,
     author: optStr(m.author),
     description: optStr(m.description),
     homepage: optStr(m.homepage),

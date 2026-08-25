@@ -165,7 +165,7 @@ describe('DisplaySettingsTab', () => {
     seedStore(useSettingsStore, { settings: buildSettings({ temperature_unit: 'celsius' }), updateSetting });
     render(<><ToastContainer /><DisplaySettingsTab /></>);
     await user.click(screen.getByText('°F Fahrenheit'));
-    await screen.findByText('Server error');
+    expect(await screen.findByText('Server error')).toBeInTheDocument();
   });
 
   it('FE-COMP-DISPLAY-027: temperature unit local state updates optimistically before API resolves', async () => {
@@ -214,7 +214,7 @@ describe('DisplaySettingsTab – Display currency', () => {
     await user.click(screen.getByRole('button', { name: /USD/ }));
     await user.click(await screen.findByText('Trip currency'));
 
-    await screen.findByText('Currency locked');
+    expect(await screen.findByText('Currency locked')).toBeInTheDocument();
   });
 });
 
@@ -261,7 +261,7 @@ describe('DisplaySettingsTab – Compact language picker', () => {
     await user.click(within(wrap).getByRole('button'));
     await user.click(within(wrap).getByText('Deutsch').closest('button')!);
 
-    await screen.findByText('Language locked');
+    expect(await screen.findByText('Language locked')).toBeInTheDocument();
   });
 
   it('FE-COMP-DISPLAY-048: a rejected pick from the desktop grid surfaces the error', async () => {
@@ -271,7 +271,7 @@ describe('DisplaySettingsTab – Compact language picker', () => {
 
     await user.click(screen.getByText('Deutsch'));
 
-    await screen.findByText('Language locked');
+    expect(await screen.findByText('Language locked')).toBeInTheDocument();
   });
 
   it('FE-COMP-DISPLAY-038: a mousedown outside the picker closes it', async () => {
@@ -320,7 +320,7 @@ describe('DisplaySettingsTab – Map and privacy toggles', () => {
 
     await user.click(within(optionBlock(/booking route labels/i)).getByText(/^On$/));
 
-    await screen.findByText('Labels locked');
+    expect(await screen.findByText('Labels locked')).toBeInTheDocument();
   });
 
   it('FE-COMP-DISPLAY-042: a rejected always-show-routes change surfaces the error', async () => {
@@ -330,7 +330,7 @@ describe('DisplaySettingsTab – Map and privacy toggles', () => {
 
     await user.click(within(optionBlock(/always show booking routes/i)).getByText(/^On$/));
 
-    await screen.findByText('Routes locked');
+    expect(await screen.findByText('Routes locked')).toBeInTheDocument();
   });
 
   it('FE-COMP-DISPLAY-043: the POI pill defaults to On and can be turned off', async () => {
@@ -353,7 +353,7 @@ describe('DisplaySettingsTab – Map and privacy toggles', () => {
 
     await user.click(within(optionBlock(/explore places on the map/i)).getByText(/^Off$/));
 
-    await screen.findByText('POI locked');
+    expect(await screen.findByText('POI locked')).toBeInTheDocument();
   });
 
   it('FE-COMP-DISPLAY-045: turning blur booking codes on persists true', async () => {
@@ -441,6 +441,6 @@ describe('DisplaySettingsTab – startup destination', () => {
 
     await user.click(within(optionBlock(/^Start page$/)).getByText('Active trip'));
 
-    await screen.findByText('Start locked');
+    expect(await screen.findByText('Start locked')).toBeInTheDocument();
   });
 });

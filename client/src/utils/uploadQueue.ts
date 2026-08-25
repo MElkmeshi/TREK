@@ -1,4 +1,5 @@
 import type { AxiosProgressEvent } from 'axios'
+import { randomId } from './randomId'
 
 export interface UploadProgress {
   done: number
@@ -66,7 +67,7 @@ export async function uploadFilesResilient<T>(
       const i = idx++
       if (i >= files.length) break
       const file = files[i]
-      const idempotencyKey = crypto.randomUUID()
+      const idempotencyKey = randomId()
       loadedMap.set(i, 0)
 
       let items: T[] | null = null

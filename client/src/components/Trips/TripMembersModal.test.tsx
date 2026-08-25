@@ -99,18 +99,18 @@ describe('TripMembersModal', () => {
 
   it('FE-COMP-MEMBERS-003: shows owner username after load', async () => {
     render(<TripMembersModal {...defaultProps} />);
-    await screen.findByText('owner');
+    expect(await screen.findByText('owner')).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-004: shows Owner label', async () => {
     render(<TripMembersModal {...defaultProps} />);
-    await screen.findByText('Owner');
+    expect(await screen.findByText('Owner')).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-005: shows Access section heading', async () => {
     render(<TripMembersModal {...defaultProps} />);
     // Text is "Access (1 person)" so use regex
-    await screen.findByText(/Access/i);
+    expect(await screen.findByText(/Access/i)).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-006: shows member when members are loaded', async () => {
@@ -124,17 +124,17 @@ describe('TripMembersModal', () => {
       )
     );
     render(<TripMembersModal {...defaultProps} />);
-    await screen.findByText('alice');
+    expect(await screen.findByText('alice')).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-007: shows Invite User section', async () => {
     render(<TripMembersModal {...defaultProps} />);
-    await screen.findByText('Invite User');
+    expect(await screen.findByText('Invite User')).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-008: shows Invite button', async () => {
     render(<TripMembersModal {...defaultProps} />);
-    await screen.findByRole('button', { name: /Invite/i });
+    expect(await screen.findByRole('button', { name: /Invite/i })).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-009: Cancel/close button is present', () => {
@@ -148,7 +148,7 @@ describe('TripMembersModal', () => {
   it('FE-COMP-MEMBERS-010: shows member count of 1 with owner', async () => {
     render(<TripMembersModal {...defaultProps} />);
     // 1 person (just owner)
-    await screen.findByText(/1 person/i);
+    expect(await screen.findByText(/1 person/i)).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-011: members count increases when member is added', async () => {
@@ -162,13 +162,13 @@ describe('TripMembersModal', () => {
       )
     );
     render(<TripMembersModal {...defaultProps} />);
-    await screen.findByText(/2 persons/i);
+    expect(await screen.findByText(/2 persons/i)).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-012: shows "you" label next to current user', async () => {
     render(<TripMembersModal {...defaultProps} />);
     // Rendered as "(you)" — use regex to find it
-    await screen.findByText(/\(you\)/i);
+    expect(await screen.findByText(/\(you\)/i)).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-013: shows remove access button for members (not owner)', async () => {
@@ -237,7 +237,7 @@ describe('TripMembersModal', () => {
     seedStore(useTripStore, { trip: buildTrip({ id: 1, user_id: ownerUser.id }) });
 
     render(<TripMembersModal {...defaultProps} />);
-    await screen.findByText('Public Link');
+    expect(await screen.findByText('Public Link')).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-018: create share link shows URL after clicking create', async () => {
@@ -462,7 +462,7 @@ describe('TripMembersModal', () => {
     );
 
     render(<TripMembersModal {...defaultProps} />);
-    await screen.findByText('All users already have access.');
+    expect(await screen.findByText('All users already have access.')).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-026: owner sees the guests section and can add a guest (#1362)', async () => {
@@ -519,7 +519,7 @@ describe('TripMembersModal', () => {
     mockRoster([], { id: ownerUser.id, username: '', avatar_url: null });
     render(<TripMembersModal {...defaultProps} />);
 
-    await screen.findByText('?');
+    expect(await screen.findByText('?')).toBeInTheDocument();
   });
 
   it('FE-COMP-MEMBERS-030: a failing roster load shows an error toast and an empty list', async () => {

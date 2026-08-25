@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { localIsoDate } from '../utils/localDate';
 import { render, screen, waitFor, cleanup } from '../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -840,7 +841,7 @@ describe('JourneyDetailPage', () => {
     });
   });
 
-  // ── Helper: open entry editor ────────────────────────��─────────────────
+  // ── Helper: open entry editor ───────────────────────────────────────────
   async function openEntryEditor(user: ReturnType<typeof userEvent.setup>) {
     // The + button is inside the view controls row, after the tab group
     // Structure: div.justify-between > [div(tabs), button(+)]
@@ -1317,7 +1318,7 @@ describe('JourneyDetailPage', () => {
         http.post('/api/journeys/1/entries', () => {
           return HttpResponse.json({
             id: 99, journey_id: 1, author_id: 1, type: 'entry',
-            entry_date: new Date().toISOString().split('T')[0],
+            entry_date: localIsoDate(),
             title: 'Test Entry', story: null, location_name: null,
             location_lat: null, location_lng: null, mood: null, weather: null,
             tags: [], pros_cons: null, visibility: 'private', sort_order: 0,

@@ -11,7 +11,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { getClientIp } from '../audit/client-ip';
 import { pluginsEnabled } from './kill-switch';
 import { devLinkEnabled } from './dev-link';
-import { PluginActivateDto, PluginConfigDto, PluginEgressHostsDto, PluginInstallDto, PluginLinkDto, PluginRetrustDto, PluginUninstallDto } from './plugins.dto';
+import { PluginActivateDto, PluginConfigDto, PluginEgressHostsDto, PluginInstallDto, PluginLinkDto, PluginRetrustDto, PluginUninstallDto, PluginUpdateDto } from './plugins.dto';
 import { ManagedForbidden, isManagedBlocked, MANAGED_FORBIDDEN_ERROR } from '../common/managed';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 
@@ -81,8 +81,12 @@ export class PluginsController {
       // withDependencies (used by the "resolve missing dependency" admin flow) pulls
       // the target + its transitive plugin deps, resolving each to its latest
       // compatible version and reporting addons the admin still has to enable.
+      // Dependency resolution pins versions internally but never DELIBERATELY, so
+      // only the plain path below recomputes the update hold.
       if (body.withDependencies) return await this.registry.installWithDependencies(body.id, body.constraint);
-      return await this.registry.install(body.id, { version: body.version, constraint: body.constraint });
+      const res = await this.registry.install(body.id, { version: body.version, constraint: body.constraint });
+      await this.registry.recomputeUpdateHold(res.id, res.version, !!body.version);
+      return res;
     } catch (e) {
       throw registryFailure(e, 'install failed');
     }
@@ -221,13 +225,29 @@ export class PluginsController {
 
   @Post(':id/update')
   @HttpCode(200)
-  async update(@Param('id') id: string) {
+  async update(@Param('id') id: string, @Body() body?: PluginUpdateDto) {
     if (!pluginsEnabled()) throw new HttpException({ error: 'Plugins are disabled by server configuration' }, 503);
     try {
-      return await this.runtime.update(id);
+      // An explicit version is the rollback path: install exactly what the admin picked
+      // (the TREK-compat gate still refuses in selectVersion). Absent, the runtime
+      // resolves the newest compatible version itself.
+      const res = await this.runtime.update(id, { version: body?.version });
+      // A deliberate non-latest pick holds future updates; landing on the newest
+      // (any path) releases a stale hold. Only after success — a failed update
+      // changed nothing and must not touch the flag.
+      await this.registry.recomputeUpdateHold(id, res.version, !!body?.version);
+      return res;
     } catch (e) {
       throw registryFailure(e, 'update failed');
     }
+  }
+
+  /** Release a per-plugin update hold (set by a deliberate non-latest install). */
+  @Post(':id/resume-updates')
+  @HttpCode(200)
+  resumeUpdates(@Param('id') id: string) {
+    if (!this.plugins.resumeUpdates(id)) throw new HttpException({ error: `plugin ${id} not found` }, 404);
+    return { updateHold: false };
   }
 
   /**

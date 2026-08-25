@@ -11,6 +11,14 @@
 export const DEMO_EMAIL_PRIMARY = 'demo@trek.app';
 
 /**
+ * The demo account's password. Public on purpose — a demo instance shows it on
+ * the login screen so visitors can get in — but it was written out twice, in the
+ * seeder and in the config payload, which is one copy too many for something the
+ * seeder has to match exactly for the login to work.
+ */
+export const DEMO_PASS = 'demo12345';
+
+/**
  * All email addresses that should be treated as the demo account.
  * Includes the historical `demo@nomad.app` identifier so instances that
  * upgraded in place without resetting the DB still hit demo-mode guards.

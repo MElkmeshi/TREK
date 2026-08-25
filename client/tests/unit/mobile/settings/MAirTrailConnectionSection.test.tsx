@@ -162,7 +162,7 @@ describe('MAirTrailConnectionSection', () => {
     renderSection();
 
     await user.click(await screen.findByRole('button', { name: /Save/ }));
-    await screen.findByText('Not connected');
+    expect(await screen.findByText('Not connected')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETAIR-010: a rejected save surfaces the server error message', async () => {
@@ -176,7 +176,7 @@ describe('MAirTrailConnectionSection', () => {
     renderSection();
 
     await user.click(await screen.findByRole('button', { name: /Save/ }));
-    await screen.findByText('Instance unreachable');
+    expect(await screen.findByText('Instance unreachable')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETAIR-011: a successful test reports the flight count and flips the badge', async () => {
@@ -214,6 +214,6 @@ describe('MAirTrailConnectionSection', () => {
     renderSection();
 
     await user.click(await screen.findByRole('button', { name: /Test connection/ }));
-    await screen.findByText('Connection failed');
+    expect(await screen.findByText('Connection failed')).toBeInTheDocument();
   });
 });

@@ -12,6 +12,7 @@ import type mapboxgl from 'mapbox-gl'
 import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route, TramFront } from 'lucide-react'
 import { getTransitMapSegments } from './transitGeometry'
 import { geodesicArcs } from './flightGeodesy'
+import { cleanEndpointName } from './reservationName'
 import { escapeHtml } from '@trek/shared'
 import type { Reservation, ReservationEndpoint } from '../../types'
 
@@ -57,7 +58,7 @@ function parseInTz(isoLocal: string, tz: string): number {
   // minutes) makes Date.UTC NaN; bail before formatToParts, which throws on a
   // non-finite date and would blank the whole trip. computeDuration's finiteness
   // check then drops the duration cleanly.
-  if (!Number.isFinite(guess)) return NaN
+  if (!Number.isFinite(guess)) return Number.NaN
   const fmt = new Intl.DateTimeFormat('en-US', {
     timeZone: tz, hour12: false,
     year: 'numeric', month: '2-digit', day: '2-digit',
@@ -93,8 +94,6 @@ function computeDuration(from: ReservationEndpoint, to: ReservationEndpoint, fal
   const m = minutes % 60
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
-
-const cleanName = (name: string) => name.replace(/\s*\([^)]*\)/g, '').trim()
 
 // ── item building ─────────────────────────────────────────────────────────
 interface TransportItem {
@@ -349,7 +348,7 @@ export class ReservationMapboxOverlay {
       for (const item of visibleItems) {
         const showLabel = this.opts.showEndpointLabels && labelVisibleIds.has(item.res.id)
         for (const ep of item.waypoints) {
-          const label = showLabel ? (ep.code || cleanName(ep.name)) : null
+          const label = showLabel ? (ep.code || cleanEndpointName(ep.name)) : null
           const el = document.createElement('div')
           el.innerHTML = endpointMarkerHtml(item.type, label)
           const inner = el.firstElementChild as HTMLElement | null

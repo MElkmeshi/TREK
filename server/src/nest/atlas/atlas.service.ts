@@ -254,7 +254,7 @@ export class AtlasService {
       const dates = countryTrips
         .map((t) => t.start_date)
         .filter(Boolean)
-        .sort();
+        .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
       return {
         code: c.code,
         placeCount: c.places.length,
@@ -376,7 +376,8 @@ export class AtlasService {
     const visited = countries.filter((c) => c.status === 'visited');
     const planned = countries.filter((c) => c.status === 'planned');
 
-    const mostVisited = visited.length > 0 ? visited.reduce((a, b) => (a.placeCount > b.placeCount ? a : b)) : null;
+    const mostVisited =
+      visited.length > 0 ? visited.reduce((a, b) => (a.placeCount > b.placeCount ? a : b), visited[0]) : null;
 
     const continents: Record<string, number> = {};
     visited.forEach((c) => {
@@ -429,7 +430,7 @@ export class AtlasService {
       nextTrip.daysUntil = Math.max(0, diff);
     }
 
-    const tripYears = new Set(trips.filter((t) => t.start_date).map((t) => parseInt(t.start_date!.split('-')[0])));
+    const tripYears = new Set(trips.filter((t) => t.start_date).map((t) => Number.parseInt(t.start_date!.split('-')[0])));
     let streak = 0;
     const currentYear = new Date().getFullYear();
     for (let y = currentYear; y >= 2000; y--) {

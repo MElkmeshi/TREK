@@ -98,7 +98,7 @@ describe('AddonManager', () => {
 
   it('FE-ADMIN-ADDON-002: empty state when addons list is empty', async () => {
     render(<AddonManager />);
-    await screen.findByText('No addons available');
+    expect(await screen.findByText('No addons available')).toBeInTheDocument();
   });
 
   it('FE-ADMIN-ADDON-003: trip addons section renders with correct section header', async () => {

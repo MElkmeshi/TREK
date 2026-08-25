@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
+import { localIsoDate } from '../../../../src/utils/localDate';
 import userEvent from '@testing-library/user-event';
 import { mapsApi, weatherApi } from '../../../../src/api/client';
 import { useAddonStore } from '../../../../src/store/addonStore';
@@ -326,8 +327,8 @@ describe('MJourneyEntrySheet full editor', () => {
     expect(screen.getByText('Mood')).toBeInTheDocument();
     expect(screen.getByText('Weather')).toBeInTheDocument();
     expect(screen.getByText('Tags')).toBeInTheDocument();
-    // An empty entry_date falls back to today, an empty gallery locks the picker.
-    expect(dateField().value).toBe(new Date().toISOString().split('T')[0]);
+    // An empty entry_date falls back to today (the LOCAL date), an empty gallery locks the picker.
+    expect(dateField().value).toBe(localIsoDate());
     expect(timeField()).toHaveValue('');
     expect(screen.getByRole('button', { name: 'From Gallery' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Upload photos' })).toBeEnabled();

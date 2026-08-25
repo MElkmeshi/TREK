@@ -1,6 +1,6 @@
 // FE-COMP-TRIPFORM-001 to FE-COMP-TRIPFORM-084
 import type { Mock } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
+import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { useAuthStore } from '../../store/authStore';
@@ -112,7 +112,7 @@ describe('TripFormModal', () => {
       await user.click(submitBtn.closest('button') || submitBtn);
     }
     // Error: "Title is required"
-    await screen.findByText('Title is required');
+    expect(await screen.findByText('Title is required')).toBeInTheDocument();
   });
 
   it('FE-COMP-TRIPFORM-010: typing title and submitting calls onSave', async () => {
@@ -229,7 +229,7 @@ describe('TripFormModal', () => {
       )
     );
     render(<TripFormModal {...defaultProps} trip={null} />);
-    await screen.findByText('Travel buddies');
+    expect(await screen.findByText('Travel buddies')).toBeInTheDocument();
   });
 
   it('FE-COMP-TRIPFORM-024: selecting a member adds a chip', async () => {
@@ -272,7 +272,7 @@ describe('TripFormModal', () => {
     const aliceChip = screen.getByText('alice');
     expect(aliceChip).toBeInTheDocument();
     // Click the chip to remove alice
-    await user.click(aliceChip.closest('span')!);
+    await user.click(aliceChip.closest('button')!);
     // alice chip should be gone
     await waitFor(() => expect(screen.queryByText('alice')).not.toBeInTheDocument());
   });
@@ -305,7 +305,7 @@ describe('TripFormModal', () => {
     const submitBtns = screen.getAllByText('Create New Trip');
     const submitBtn = submitBtns.find(el => el.closest('button'))!;
     await user.click(submitBtn.closest('button')!);
-    await screen.findByText('Server error');
+    expect(await screen.findByText('Server error')).toBeInTheDocument();
   });
 
   it('FE-COMP-TRIPFORM-028: loading spinner shown while submitting', async () => {
@@ -720,7 +720,7 @@ describe('TripFormModal', () => {
     await user.type(screen.getByPlaceholderText('Search destination photos'), 'nowhere');
     await user.click(screen.getByRole('button', { name: /Search Unsplash/i }));
 
-    await screen.findByText('No images found');
+    expect(await screen.findByText('No images found')).toBeInTheDocument();
   });
 
   it('FE-COMP-TRIPFORM-054: a failing search shows the server error', async () => {
@@ -735,7 +735,7 @@ describe('TripFormModal', () => {
     await user.type(screen.getByPlaceholderText('Search destination photos'), 'alps');
     await user.click(screen.getByRole('button', { name: /Search Unsplash/i }));
 
-    await screen.findByText('Unsplash key missing');
+    expect(await screen.findByText('Unsplash key missing')).toBeInTheDocument();
   });
 
   it('FE-COMP-TRIPFORM-055: a photo without a photographer falls back in the label and drops the credit', async () => {
@@ -1071,9 +1071,11 @@ describe('TripFormModal', () => {
 
     await screen.findByText('alice');
     await user.click(screen.getByText('Add member').closest('button')!);
-    // alice is already a member, so only bob is offered.
-    expect(screen.queryAllByRole('button', { name: 'alice' })).toHaveLength(0);
-    await user.click(await screen.findByRole('button', { name: 'bob' }));
+    // alice is already a member, so the option list offers only bob (her chip
+    // outside the list is a button of its own — that is what removes her).
+    const bobOption = await screen.findByRole('button', { name: 'bob' });
+    expect(within(bobOption.parentElement!).queryByRole('button', { name: 'alice' })).toBeNull();
+    await user.click(bobOption);
 
     await waitFor(() => expect(identifier).toBe('bob'));
     expect(addToast).toHaveBeenCalledWith('bob added', 'success', undefined);
@@ -1104,7 +1106,7 @@ describe('TripFormModal', () => {
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Broken');
     await submitNewTrip(user);
 
-    await screen.findByText('Failed to save');
+    expect(await screen.findByText('Failed to save')).toBeInTheDocument();
   });
 
   it('FE-COMP-TRIPFORM-077: a save error from the date-shift step is shown on that step', async () => {

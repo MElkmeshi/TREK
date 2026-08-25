@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios'
 import type { z } from 'zod'
 import type { Place } from '../types'
+import { randomId } from '../utils/randomId'
 import {
   weatherResultSchema, type WeatherResult,
   inAppListResultSchema, type InAppListResult,
@@ -151,10 +152,7 @@ apiClient.interceptors.request.use(
       // The mutation queue sets its own pre-generated key; skip if already set.
       const method = (config.method ?? '').toLowerCase()
       if (MUTATING_METHODS.has(method) && !config.headers['X-Idempotency-Key']) {
-        const key = typeof crypto !== 'undefined' && crypto.randomUUID
-            ? crypto.randomUUID()
-            : Math.random().toString(36).slice(2)
-        config.headers['X-Idempotency-Key'] = key
+        config.headers['X-Idempotency-Key'] = randomId()
       }
       return config
     },
@@ -533,7 +531,12 @@ export const adminApi = {
     apiClient.post('/admin/plugins/install', { id, ...opts }).then(r => r.data),
   pluginActivate: (id: string, consent?: boolean) => apiClient.post(`/admin/plugins/${id}/activate`, consent ? { consent: true } : {}).then(r => r.data),
   pluginDeactivate: (id: string) => apiClient.post(`/admin/plugins/${id}/deactivate`).then(r => r.data),
-  pluginUpdate: (id: string) => apiClient.post(`/admin/plugins/${id}/update`).then(r => r.data),
+  // `version` pins the exact version to install (the rollback path); omitted, the server
+  // resolves the newest TREK-compatible version itself.
+  pluginUpdate: (id: string, version?: string) =>
+    apiClient.post(`/admin/plugins/${id}/update`, version ? { version } : {}).then(r => r.data),
+  // Release a per-plugin update hold (set by a deliberate non-latest install).
+  pluginResumeUpdates: (id: string) => apiClient.post(`/admin/plugins/${id}/resume-updates`).then(r => r.data),
   // Re-trust a ROTATED author signing key and update, in ONE call. `publicKey` is the
   // full key the admin was shown (not a fingerprint): the server compares it exactly, so
   // it can refuse if the registry entry was re-keyed again since the dialog rendered.

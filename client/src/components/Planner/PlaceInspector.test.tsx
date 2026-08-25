@@ -335,7 +335,7 @@ describe('PlaceInspector', () => {
     } as any);
     const p = buildPlace({ id: 201, google_place_id: 'ChIJ002' });
     render(<PlaceInspector {...defaultProps} place={p} />);
-    await screen.findByText(/4\.5/);
+    expect(await screen.findByText(/4\.5/)).toBeInTheDocument();
   });
 
   it('FE-PLANNER-INSPECTOR-025: opening hours shown when available', async () => {
@@ -361,7 +361,7 @@ describe('PlaceInspector', () => {
     } as any);
     const p = buildPlace({ id: 203, google_place_id: 'ChIJ004' });
     render(<PlaceInspector {...defaultProps} place={p} />);
-    await screen.findByText(/open/i);
+    expect(await screen.findByText(/open/i)).toBeInTheDocument();
   });
 
   it('FE-PLANNER-INSPECTOR-027: mapsApi.details NOT called when place has no google_place_id or osm_id', async () => {
@@ -394,7 +394,7 @@ describe('PlaceInspector', () => {
     // Click the expand button (file count label button)
     if (filesBtn) {
       await user.click(filesBtn);
-      await screen.findByText('photo.jpg');
+      expect(await screen.findByText('photo.jpg')).toBeInTheDocument();
     } else {
       // Try clicking the last non-footer button
       const toggleButtons = allButtons.filter(btn => !btn.closest('footer'));
@@ -1291,7 +1291,7 @@ describe('PlaceInspector', () => {
 
   it('FE-PLANNER-INSPECTOR-093: participant chips and the add menu reset their hover styling', () => {
     render(<PlaceInspector {...defaultProps} {...participantProps([{ user_id: 1 }, { user_id: 2 }])} />);
-    const chip = screen.getByText('ada').closest('div') as HTMLElement;
+    const chip = screen.getByText('ada').closest('button') as HTMLElement;
     fireEvent.mouseEnter(chip);
     expect(chip.className).toContain('text-[#ef4444]');
     fireEvent.mouseLeave(chip);

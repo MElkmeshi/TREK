@@ -20,7 +20,7 @@ export function Swatches({ value, onPick }: { value: string; onPick: (c: string)
   return (
     <div className="st-swatches">
       {SWATCHES.map(c => (
-        <button
+        <button type="button"
           key={c}
           className={`st-swatch ${value.toLowerCase() === c ? 'is-on' : ''}`}
           style={{ background: c }} // theme-lint-disable — a colour picker shows the colours themselves
@@ -30,7 +30,8 @@ export function Swatches({ value, onPick }: { value: string; onPick: (c: string)
       ))}
       {/* Anything at all, for a book that has to match a cover or a brand. */}
       <label className="st-swatch st-swatch-custom">
-        <input type="color" value={value} onChange={e => onPick(e.target.value)} />
+        {/* Named by the colour it holds, the way the preset swatches above are. */}
+        <input type="color" aria-label={value} value={value} onChange={e => onPick(e.target.value)} />
       </label>
     </div>
   )

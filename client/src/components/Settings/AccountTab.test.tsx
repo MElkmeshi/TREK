@@ -74,7 +74,7 @@ describe('AccountTab', () => {
     render(<><ToastContainer /><AccountTab /></>);
     await user.click(screen.getByText('Update password'));
     // Validation fires: first checks currentPassword — "Current password is required"
-    await screen.findByText(/Current password is required/i);
+    expect(await screen.findByText(/Current password is required/i)).toBeInTheDocument();
   });
 
   it('FE-COMP-ACCOUNT-011: password mismatch shows error', async () => {
@@ -86,7 +86,7 @@ describe('AccountTab', () => {
     await user.type(passwordInputs[1], 'NewPassword1!');
     await user.type(passwordInputs[2], 'DifferentPass1!');
     await user.click(screen.getByText('Update password'));
-    await screen.findByText('Passwords do not match');
+    expect(await screen.findByText('Passwords do not match')).toBeInTheDocument();
   });
 
   it('FE-COMP-ACCOUNT-012: valid password change calls API', async () => {
@@ -140,7 +140,7 @@ describe('AccountTab – Profile', () => {
     seedStore(useAuthStore, { updateProfile: vi.fn().mockResolvedValue(undefined) });
     render(<><ToastContainer /><AccountTab /></>);
     await user.click(screen.getByRole('button', { name: /save profile/i }));
-    await screen.findByText('Profile saved');
+    expect(await screen.findByText('Profile saved')).toBeInTheDocument();
   });
 
   it('FE-COMP-ACCOUNT-016: failed save shows error toast with error message', async () => {
@@ -148,7 +148,7 @@ describe('AccountTab – Profile', () => {
     seedStore(useAuthStore, { updateProfile: vi.fn().mockRejectedValue(new Error('Server error')) });
     render(<><ToastContainer /><AccountTab /></>);
     await user.click(screen.getByRole('button', { name: /save profile/i }));
-    await screen.findByText('Server error');
+    expect(await screen.findByText('Server error')).toBeInTheDocument();
   });
 
   it('FE-COMP-ACCOUNT-017: Save button shows spinner while saving', async () => {
@@ -171,7 +171,7 @@ describe('AccountTab – Password change', () => {
     await user.type(passwordInputs[1], 'short');
     await user.type(passwordInputs[2], 'short');
     await user.click(screen.getByText('Update password'));
-    await screen.findByText(/at least 8 characters/i);
+    expect(await screen.findByText(/at least 8 characters/i)).toBeInTheDocument();
   });
 
   it('FE-COMP-ACCOUNT-019: password change clears fields on success', async () => {
@@ -205,7 +205,7 @@ describe('AccountTab – Password change', () => {
     await user.type(passwordInputs[1], 'NewPassword1!');
     await user.type(passwordInputs[2], 'NewPassword1!');
     await user.click(screen.getByText('Update password'));
-    await screen.findByText('Wrong password');
+    expect(await screen.findByText('Wrong password')).toBeInTheDocument();
   });
 
   it('FE-COMP-ACCOUNT-021: password section hidden in OIDC-only mode', async () => {
@@ -376,7 +376,7 @@ describe('AccountTab – MFA', () => {
     const codeInput = screen.getByPlaceholderText('6-digit code');
     await user.type(codeInput, '123456');
     await user.click(screen.getByRole('button', { name: 'Disable 2FA' }));
-    await screen.findByText('Two-factor authentication disabled');
+    expect(await screen.findByText('Two-factor authentication disabled')).toBeInTheDocument();
   });
 
   it('FE-COMP-ACCOUNT-035: policy warning shown when MFA is required by policy', () => {
@@ -577,7 +577,7 @@ describe('AccountTab – Backup codes', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Copy codes' }));
 
-    await screen.findByText('Error');
+    expect(await screen.findByText('Error')).toBeInTheDocument();
   });
 
   it('FE-COMP-ACCOUNT-052: Download TXT builds a blob, names the file and revokes the URL', async () => {
@@ -682,7 +682,7 @@ describe('AccountTab – Avatar upload', () => {
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.upload(input, new File(['avatar'], 'me.png', { type: 'image/png' }));
 
-    await screen.findByText('Upload failed');
+    expect(await screen.findByText('Upload failed')).toBeInTheDocument();
   });
 
   it('FE-COMP-ACCOUNT-058: a change event without a file uploads nothing', () => {
@@ -723,7 +723,7 @@ describe('AccountTab – Avatar upload', () => {
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     await user.click(fileInput.parentElement!.querySelectorAll('button')[1]);
 
-    await screen.findByText('Upload failed');
+    expect(await screen.findByText('Upload failed')).toBeInTheDocument();
   });
 });
 

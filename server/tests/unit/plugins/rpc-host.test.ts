@@ -76,9 +76,14 @@ describe('PluginRpcHost — capability enforcement', () => {
     expect((res as RpcError).error.message).toBe('unknown method fs.readFile');
   });
 
-  it('RPCHOST-003 a denied known method names the plugin, so the log says who asked', async () => {
+  it('RPCHOST-003 a denied known method names the missing permission AND the plugin', async () => {
+    // The old template interpolated the plugin id where the permission belonged
+    // ('tags.list requires a permission "p" was not granted'), so an operator read
+    // their plugin's NAME as an unknown permission. The message must name both.
     const res = await makeHost([]).dispatch(req('tags.list'), 42);
-    expect((res as RpcError).error.message).toBe('tags.list requires a permission "p" was not granted');
+    expect((res as RpcError).error.message).toBe(
+      'tags.list requires the "db:read:tags" permission, which was not granted to plugin "p"',
+    );
   });
 
   it('RPCHOST-004 with no permissions at all, every permissioned method is denied', async () => {

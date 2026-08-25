@@ -61,7 +61,7 @@ export default function VacaySharedCalendars() {
     <div className="vg-card rounded-[22px]" style={{ padding: '14px 18px' }}>
       <div className="flex items-center justify-between mb-2">
         <span style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--vg-ink3)' }}>{t('vacay.sharedCalendars')}</span>
-        <button onClick={() => { setShowShare(true); loadAvailable() }}
+        <button type="button" onClick={() => { setShowShare(true); loadAvailable() }}
           className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
           style={{ color: 'var(--vg-ink3)' }}
           title={t('vacay.shareCalendar')}>
@@ -77,7 +77,10 @@ export default function VacaySharedCalendars() {
         <div className="flex flex-col gap-1">
           {incomingShares.map(s => (
             <div key={s.id}
+              role="button"
+              tabIndex={0}
               onClick={() => handleToggleHidden(s.id, !s.hidden)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleToggleHidden(s.id, !s.hidden) } }}
               className="flex items-center gap-2.5 group transition-colors cursor-pointer"
               style={{ padding: '7px 10px', borderRadius: 12, opacity: s.hidden ? 0.55 : 1 }}
               title={s.hidden ? t('vacay.showInCalendar') : t('vacay.hideFromCalendar')}>
@@ -88,7 +91,7 @@ export default function VacaySharedCalendars() {
               </span>
               <VacayBadge label={t('vacay.viewOnly')} />
               <span className="ml-auto flex items-center gap-1">
-                <button onClick={e => { e.stopPropagation(); handleRemove(s.id) }}
+                <button type="button" onClick={e => { e.stopPropagation(); handleRemove(s.id) }}
                   className="opacity-0 group-hover:opacity-100 w-5 h-5 rounded flex items-center justify-center transition-all"
                   style={{ color: 'var(--vg-ink3)' }}
                   title={t('vacay.remove')}>
@@ -115,7 +118,7 @@ export default function VacaySharedCalendars() {
               <span className="truncate min-w-0" style={{ fontSize: 13, color: 'var(--vg-ink2)' }}>
                 {s.username}
               </span>
-              <button onClick={() => handleRemove(s.id)}
+              <button type="button" onClick={() => handleRemove(s.id)}
                 className="ml-auto opacity-0 group-hover:opacity-100 text-[10px] px-1.5 py-0.5 rounded transition-all"
                 style={{ color: 'var(--vg-ink3)' }}>
                 {t('vacay.stopSharing')}
@@ -128,12 +131,14 @@ export default function VacaySharedCalendars() {
       {/* Share Modal — Portal to body to avoid z-index issues */}
       {showShare && createPortal(
         <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]" style={{ zIndex: 99990, paddingTop: 70 }}
+          role="presentation"
           onClick={() => setShowShare(false)}>
           <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm bg-surface-card"
+            role="presentation"
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-edge-secondary">
               <h2 className="text-base font-semibold text-content">{t('vacay.shareCalendar')}</h2>
-              <button onClick={() => setShowShare(false)} className="p-1.5 rounded-lg transition-colors text-content-faint">
+              <button type="button" onClick={() => setShowShare(false)} className="p-1.5 rounded-lg transition-colors text-content-faint">
                 <X size={16} />
               </button>
             </div>
@@ -151,10 +156,10 @@ export default function VacaySharedCalendars() {
                 />
               )}
               <div className="flex gap-3 justify-end pt-2">
-                <button onClick={() => setShowShare(false)} className="px-4 py-2 text-sm rounded-lg text-content-muted border border-edge">
+                <button type="button" onClick={() => setShowShare(false)} className="px-4 py-2 text-sm rounded-lg text-content-muted border border-edge">
                   {t('common.cancel')}
                 </button>
-                <button onClick={handleShare} disabled={!selectedUser || sharing}
+                <button type="button" onClick={handleShare} disabled={!selectedUser || sharing}
                   className="px-4 py-2 text-sm rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-40 bg-content text-surface-card">
                   {sharing && <Loader2 size={13} className="animate-spin" />}
                   {t('vacay.share')}

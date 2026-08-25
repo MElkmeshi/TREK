@@ -153,7 +153,7 @@ describe('MSettingsAccount – profile', () => {
 
     fireEvent.change(fileInput(), { target: { files: [new File(['x'], 'a.png', { type: 'image/png' })] } });
 
-    await screen.findByText('Upload failed');
+    expect(await screen.findByText('Upload failed')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETACC-009: a change event without a file is ignored', () => {
@@ -191,7 +191,7 @@ describe('MSettingsAccount – profile', () => {
 
     await user.click(screen.getByRole('button', { name: 'Remove Profile Picture' }));
 
-    await screen.findByText('Removal failed');
+    expect(await screen.findByText('Removal failed')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETACC-012: Save sends the edited fields through updateProfile', async () => {
@@ -230,7 +230,7 @@ describe('MSettingsAccount – profile', () => {
 
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    await screen.findByText('Error');
+    expect(await screen.findByText('Error')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETACC-013c: without a signed-in user both profile fields start empty', () => {
@@ -251,7 +251,7 @@ describe('MSettingsAccount – profile', () => {
 
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    await screen.findByText('Email already taken');
+    expect(await screen.findByText('Email already taken')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETACC-014: Save is disabled while the request is in flight', async () => {
@@ -291,7 +291,7 @@ describe('MSettingsAccount – password', () => {
 
     await user.click(screen.getByRole('button', { name: 'Update password' }));
 
-    await screen.findByText('Current password is required');
+    expect(await screen.findByText('Current password is required')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETACC-018: an empty new password is rejected', async () => {
@@ -301,7 +301,7 @@ describe('MSettingsAccount – password', () => {
     await user.type(screen.getByPlaceholderText('Current password'), 'old-secret');
     await user.click(screen.getByRole('button', { name: 'Update password' }));
 
-    await screen.findByText('Please enter current and new password');
+    expect(await screen.findByText('Please enter current and new password')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETACC-019: a new password below eight characters is rejected', async () => {
@@ -313,7 +313,7 @@ describe('MSettingsAccount – password', () => {
     await user.type(screen.getByPlaceholderText('Confirm new password'), 'short');
     await user.click(screen.getByRole('button', { name: 'Update password' }));
 
-    await screen.findByText('Password must be at least 8 characters');
+    expect(await screen.findByText('Password must be at least 8 characters')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETACC-020: a mismatching confirmation is rejected', async () => {
@@ -325,7 +325,7 @@ describe('MSettingsAccount – password', () => {
     await user.type(screen.getByPlaceholderText('Confirm new password'), 'NewPassword2!');
     await user.click(screen.getByRole('button', { name: 'Update password' }));
 
-    await screen.findByText('Passwords do not match');
+    expect(await screen.findByText('Passwords do not match')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETACC-021: a valid change hits the API and clears the three fields', async () => {
@@ -361,7 +361,7 @@ describe('MSettingsAccount – password', () => {
     await user.type(screen.getByPlaceholderText('Confirm new password'), 'NewPassword1!');
     await user.click(screen.getByRole('button', { name: 'Update password' }));
 
-    await screen.findByText('Wrong password');
+    expect(await screen.findByText('Wrong password')).toBeInTheDocument();
   });
 });
 
@@ -453,7 +453,7 @@ describe('MSettingsAccount – MFA', () => {
 
     await user.click(screen.getByRole('button', { name: 'Set up authenticator' }));
 
-    await screen.findByText('MFA is off');
+    expect(await screen.findByText('MFA is off')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETACC-032: enabling stores the backup codes and renders them', async () => {
@@ -493,7 +493,7 @@ describe('MSettingsAccount – MFA', () => {
     await user.type(screen.getByPlaceholderText('6-digit code'), '123456');
     await user.click(screen.getByRole('button', { name: 'Enable 2FA' }));
 
-    await screen.findByText('Invalid code');
+    expect(await screen.findByText('Invalid code')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETACC-035: the disable form needs both a password and a six-digit code', async () => {
@@ -547,7 +547,7 @@ describe('MSettingsAccount – MFA', () => {
     await user.type(screen.getByPlaceholderText('6-digit code'), '123456');
     await user.click(screen.getByRole('button', { name: 'Disable 2FA' }));
 
-    await screen.findByText('Code expired');
+    expect(await screen.findByText('Code expired')).toBeInTheDocument();
   });
 });
 
@@ -614,7 +614,7 @@ describe('MSettingsAccount – backup codes', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Copy codes' }));
 
-    await screen.findByText('Error');
+    expect(await screen.findByText('Error')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETACC-044: Download TXT builds a blob and revokes the object URL', async () => {
@@ -1020,7 +1020,7 @@ describe('MSettingsAccount – passkeys', () => {
     await user.type(within(row).getByDisplayValue('iPhone'), '2');
     await user.click(within(row).getByRole('button', { name: 'Save' }));
 
-    await screen.findByText('Name taken');
+    expect(await screen.findByText('Name taken')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETACC-068: deleting asks for the password and removes the credential', async () => {
@@ -1068,7 +1068,7 @@ describe('MSettingsAccount – passkeys', () => {
     await user.type(within(box).getByPlaceholderText('Current password'), 'nope');
     await user.click(within(box).getByRole('button', { name: 'Delete' }));
 
-    await screen.findByText('Wrong password');
+    expect(await screen.findByText('Wrong password')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETACC-070: cancelling the delete step-up closes the box', async () => {
@@ -1151,7 +1151,7 @@ describe('MSettingsAccount – passkeys', () => {
     await user.type(within(form).getByPlaceholderText('Current password'), 'my-password');
     await user.click(within(form).getByRole('button', { name: 'Add a passkey' }));
 
-    await screen.findByText('Passkey setup cancelled');
+    expect(await screen.findByText('Passkey setup cancelled')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETACC-073: a rejected password step-up shows the server message', async () => {

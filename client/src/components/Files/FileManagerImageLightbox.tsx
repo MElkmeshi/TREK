@@ -53,7 +53,7 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
   const hasPrev = index > 0
   const hasNext = index < files.length - 1
   const navBtn = (side: 'left' | 'right', onClick: () => void, show: boolean): React.ReactNode => show ? (
-    <button onClick={e => { e.stopPropagation(); onClick() }}
+    <button type="button" onClick={e => { e.stopPropagation(); onClick() }}
       style={{
         position: 'absolute', top: '50%', [side]: 12, transform: 'translateY(-50%)', zIndex: 10,
         background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: 40, height: 40,
@@ -68,8 +68,12 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
 
   return (
     <div
+      // Backdrop only — Escape and the header's close button do the same job for
+      // the keyboard. Closing on the backdrop's own clicks (rather than letting
+      // every child stop the bubble) keeps the chrome free of click handlers.
+      role="presentation"
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 2000, display: 'flex', flexDirection: 'column', paddingBottom: 'var(--bottom-nav-h)' }}
-      onClick={onClose}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
       onTouchStart={e => setTouchStart(e.touches[0].clientX)}
       onTouchEnd={e => {
         if (touchStart === null) return
@@ -80,47 +84,47 @@ export function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxPro
       }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', flexShrink: 0 }}>
         <span style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
           {file.original_name}
           <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.4)' }}>{index + 1} / {files.length}</span>
         </span>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          <button
+          <button type="button"
             onClick={() => openFileUrl(file.url, file.original_name).catch(() => {})}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}
             title={t('files.openTab')}>
             <ExternalLink size={16} />
           </button>
-          <button
+          <button type="button"
             onClick={() => triggerDownload(file.url, file.original_name)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}
             title={t('files.download') || 'Download'}>
             <Download size={16} />
           </button>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}>
             <X size={18} />
           </button>
         </div>
       </div>
 
       {/* Main image + nav */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', minHeight: 0 }}
+      <div role="presentation" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', minHeight: 0 }}
         onClick={e => { if (e.target === e.currentTarget) onClose() }}>
         {navBtn('left', goPrev, hasPrev)}
         {fileIsVideo ? (
-          <div onClick={e => e.stopPropagation()}>
+          <div>
             <VideoPlayer src={file.url} style={{ maxWidth: '85vw', maxHeight: '80vh', borderRadius: 8 }} />
           </div>
         ) : (
-          imgSrc && <img src={imgSrc} alt={file.original_name} style={{ maxWidth: '85vw', maxHeight: '80vh', objectFit: 'contain', borderRadius: 8, display: 'block' }} onClick={e => e.stopPropagation()} />
+          imgSrc && <img src={imgSrc} alt={file.original_name} style={{ maxWidth: '85vw', maxHeight: '80vh', objectFit: 'contain', borderRadius: 8, display: 'block' }} />
         )}
         {navBtn('right', goNext, hasNext)}
       </div>
 
       {/* Thumbnail strip */}
       {files.length > 1 && (
-        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', padding: '10px 16px', flexShrink: 0, overflowX: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', padding: '10px 16px', flexShrink: 0, overflowX: 'auto' }}>
           {files.map((f, i) => (
             <ThumbImg key={f.id} file={f} active={i === index} onClick={() => setIndex(i)} />
           ))}
@@ -156,7 +160,7 @@ function ThumbImg({ file, active, onClick }: { file: TripFile & { url: string };
   }, [file.url, fileIsVideo, visible])
 
   return (
-    <button ref={ref} onClick={onClick} style={{
+    <button type="button" ref={ref} onClick={onClick} style={{
       width: 48, height: 48, borderRadius: 6, overflow: 'hidden', border: active ? '2px solid #fff' : '2px solid transparent',
       opacity: active ? 1 : 0.5, cursor: 'pointer', padding: 0, background: '#111', flexShrink: 0, transition: 'opacity 0.15s',
       display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.7)',

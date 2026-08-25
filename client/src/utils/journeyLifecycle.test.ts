@@ -59,3 +59,33 @@ describe('computeJourneyLifecycle', () => {
     expect(computeJourneyLifecycle('published', null, TODAY)).toBe('live')
   })
 })
+
+/**
+ * The midnight-window regression: "today" must be the LOCAL calendar date.
+ * The old code derived it from toISOString() (the UTC date), so between local
+ * midnight and the UTC rollover a journey running through yesterday still
+ * showed 'live' and one starting today showed 'upcoming'. Pinned at 00:30
+ * local — vacuous on a UTC machine, biting on any TZ ahead of UTC.
+ */
+describe('computeJourneyLifecycle — local today at the midnight window', () => {
+  beforeAll(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 7, 25, 0, 30)) // local 2026-08-25 00:30
+  })
+  afterAll(() => {
+    vi.useRealTimers()
+  })
+
+  it('a journey spanning the local today is live', () => {
+    expect(computeJourneyLifecycle('active', '2026-08-25', '2026-08-26')).toBe('live')
+  })
+
+  it('a journey that ended yesterday (local) is completed', () => {
+    expect(computeJourneyLifecycle('active', '2026-08-20', '2026-08-24')).toBe('completed')
+  })
+
+  it('single boundaries follow the local date too', () => {
+    expect(computeJourneyLifecycle('active', '2026-08-25', null)).toBe('live')      // starts today → live
+    expect(computeJourneyLifecycle('active', null, '2026-08-24')).toBe('completed') // ended yesterday
+  })
+})

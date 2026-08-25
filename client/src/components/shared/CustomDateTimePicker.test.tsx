@@ -1,4 +1,5 @@
 import userEvent from '@testing-library/user-event';
+import { localIsoDate } from '../../utils/localDate';
 import { act, fireEvent, render, screen } from '../../../tests/helpers/render';
 import { useSettingsStore } from '../../store/settingsStore';
 import { CustomDatePicker, CustomDateTimePicker } from './CustomDateTimePicker';
@@ -722,7 +723,7 @@ describe('CustomDateTimePicker branches', () => {
     const steppers = screen.getAllByRole('button').filter((b) => b.textContent?.trim() === '');
     fireEvent.click(steppers[steppers.length - 4]);
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = localIsoDate(); // the picker falls back to the LOCAL date, not the UTC one
     expect(onChange).toHaveBeenCalledWith(`${today}T01:00`);
   });
 

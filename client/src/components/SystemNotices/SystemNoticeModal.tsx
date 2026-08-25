@@ -108,7 +108,7 @@ function NoticeContent({ notice, title, body, ctaLabel, secondaryCtaLabel, title
     <div className="flex flex-col relative" style={{ flex: '1 1 0', minHeight: '100%' }}>
       {/* Dismiss X button — only on last page so users read all notices */}
       {notice.dismissible && isLastPage && (
-        <button
+        <button type="button"
           onClick={onDismissAll}
           className="absolute top-4 right-4 z-10 p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           aria-label="Dismiss"
@@ -257,7 +257,7 @@ function NoticeContent({ notice, title, body, ctaLabel, secondaryCtaLabel, title
         {total > 1 && (
           <div className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-2">
-              <button
+              <button type="button"
                 onClick={onPrev}
                 disabled={!canPage || currentPage === 0}
                 aria-label={t('system_notice.pager.prev')}
@@ -267,7 +267,7 @@ function NoticeContent({ notice, title, body, ctaLabel, secondaryCtaLabel, title
               </button>
 
               {Array.from({ length: total }, (_, i) => (
-                <button
+                <button type="button"
                   key={i}
                   onClick={() => { if (canPage) onGoto(i); }}
                   aria-label={t('system_notice.pager.goto').replace('{n}', String(i + 1))}
@@ -281,7 +281,7 @@ function NoticeContent({ notice, title, body, ctaLabel, secondaryCtaLabel, title
                 />
               ))}
 
-              <button
+              <button type="button"
                 onClick={onNext}
                 disabled={!canPage || currentPage === total - 1}
                 aria-label={t('system_notice.pager.next')}
@@ -303,7 +303,7 @@ function NoticeContent({ notice, title, body, ctaLabel, secondaryCtaLabel, title
         <div className="flex flex-col items-center gap-3">
           {ctaLabel && isLastPage ? (
             <div className="flex w-full flex-col sm:flex-row gap-2.5">
-              <button
+              <button type="button"
                 id={`notice-cta-${notice.id}`}
                 onClick={onCTA}
                 className={`flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-lg font-semibold shadow-sm transition active:scale-[0.98] ${
@@ -316,7 +316,7 @@ function NoticeContent({ notice, title, body, ctaLabel, secondaryCtaLabel, title
                 {ctaLabel}
               </button>
               {secondaryCtaLabel && (
-                <button
+                <button type="button"
                   id={`notice-cta2-${notice.id}`}
                   onClick={onSecondaryCTA}
                   className={`flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-lg font-semibold shadow-sm transition active:scale-[0.98] ${
@@ -331,7 +331,7 @@ function NoticeContent({ notice, title, body, ctaLabel, secondaryCtaLabel, title
               )}
             </div>
           ) : (notice.dismissible || isLastPage) && (
-            <button
+            <button type="button"
               id={`notice-cta-${notice.id}`}
               onClick={isLastPage ? onDismissAll : onNext}
               className="w-full h-11 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
@@ -676,6 +676,7 @@ function MobileNoticeSheet(S: NoticeState) {
       {/* Backdrop */}
       <div
         className={`absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'}`}
+        role="presentation"
         onClick={notice.dismissible ? animatedDismissAll : undefined}
       />
       {/* Bottom sheet */}
@@ -843,18 +844,22 @@ function DesktopNoticeModal(S: NoticeState) {
     <div
       className={`fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-[2px] transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'}`}
       role="presentation"
-      onClick={notice.dismissible && isLastPage ? handleDismissAll : undefined}
     >
       {/* Screen-reader page announcements */}
       <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{pageAnnouncement}</span>
-      <div className="absolute inset-0 flex items-center justify-center p-4">
+      {/* The dismiss lives on this layer: it covers the backdrop, and the
+          target check keeps a click inside the panel from closing the notice. */}
+      <div
+        className="absolute inset-0 flex items-center justify-center p-4"
+        role="presentation"
+        onClick={notice.dismissible && isLastPage ? (e => { if (e.target === e.currentTarget) handleDismissAll() }) : undefined}
+      >
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
           aria-describedby={bodyId}
           className={`w-full ${maxWidth} rounded-2xl overflow-hidden overflow-y-auto max-h-[90vh] shadow-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all ${dur} ${ease} ${desktopMotion}`}
-          onClick={e => e.stopPropagation()}
         >
           <div ref={contentWrapperRef}>
             <NoticeContent {...makeContentProps(S, notice, idx)} />

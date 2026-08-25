@@ -47,7 +47,7 @@ export function formatSize(bytes: number): string {
 export function parseIntField(raw: unknown, fallback: number): number {
   if (typeof raw === 'number' && Number.isFinite(raw)) return Math.floor(raw);
   if (typeof raw === 'string' && raw.trim() !== '') {
-    const n = parseInt(raw, 10);
+    const n = Number.parseInt(raw, 10);
     if (Number.isFinite(n)) return n;
   }
   return fallback;
@@ -239,7 +239,7 @@ export async function createBackup(storage: StorageService, prefix: 'backup' | '
         let dbToArchive = dbPath;
         try {
           if (fs.existsSync(dbSnap)) fs.rmSync(dbSnap, { force: true });
-          db.exec(`VACUUM INTO '${dbSnap.replace(/'/g, "''")}'`);
+          db.exec(`VACUUM INTO '${dbSnap.replaceAll("'", "''")}'`);
           dbToArchive = dbSnap;
         } catch (e) {
           // Snapshot failed (disk/lock) — fall back to the checkpointed live file rather

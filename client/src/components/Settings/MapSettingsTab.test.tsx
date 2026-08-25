@@ -134,7 +134,7 @@ describe('MapSettingsTab', () => {
     });
     render(<><ToastContainer /><MapSettingsTab /></>);
     await user.click(screen.getByText('Save Map'));
-    await screen.findByText('Save failed');
+    expect(await screen.findByText('Save failed')).toBeInTheDocument();
   });
 
   it('FE-COMP-MAP-016: preset dropdown is rendered', () => {

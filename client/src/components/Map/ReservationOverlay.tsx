@@ -6,6 +6,7 @@ import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route, Tram
 import { escapeHtml } from '@trek/shared'
 import { getTransitMapSegments, type TransitMapSegment } from './transitGeometry'
 import { geodesicArcs } from './flightGeodesy'
+import { cleanEndpointName } from './reservationName'
 import { useSettingsStore } from '../../store/settingsStore'
 import type { Reservation, ReservationEndpoint } from '../../types'
 
@@ -64,10 +65,6 @@ function endpointIcon(type: TransportType, label: string | null): L.DivIcon {
 
 function toRad(d: number) { return d * Math.PI / 180 }
 
-function cleanName(name: string): string {
-  return name.replace(/\s*\([^)]*\)/g, '').trim()
-}
-
 function haversineKm(a: [number, number], b: [number, number]): number {
   const R = 6371
   const dLat = toRad(b[0] - a[0])
@@ -85,7 +82,7 @@ function parseInTz(isoLocal: string, tz: string): number {
   // minutes) makes Date.UTC NaN; bail before formatToParts, which throws on a
   // non-finite date and would blank the whole trip. computeDuration's finiteness
   // check then drops the duration cleanly.
-  if (!Number.isFinite(guess)) return NaN
+  if (!Number.isFinite(guess)) return Number.NaN
   const fmt = new Intl.DateTimeFormat('en-US', {
     timeZone: tz, hour12: false,
     year: 'numeric', month: '2-digit', day: '2-digit',
@@ -271,7 +268,7 @@ export default function ReservationOverlay({ reservations, showConnections, onEn
         <Marker
           key={`wp-${item.res.id}-${wi}`}
           position={[wp.lat, wp.lng]}
-          icon={endpointIcon(item.type, showEndpointLabels && labelVisibleIds.has(item.res.id) ? (wp.code || cleanName(wp.name)) : null)}
+          icon={endpointIcon(item.type, showEndpointLabels && labelVisibleIds.has(item.res.id) ? (wp.code || cleanEndpointName(wp.name)) : null)}
           pane={ENDPOINT_PANE}
           zIndexOffset={1000}
           eventHandlers={{ click: () => onEndpointClick?.(item.res.id) }}

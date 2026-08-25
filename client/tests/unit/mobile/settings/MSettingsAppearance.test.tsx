@@ -110,7 +110,7 @@ describe('MSettingsAppearance', () => {
     renderAppearance();
 
     await user.click(screen.getByRole('button', { name: 'Dark' }));
-    await screen.findByText('Server down');
+    expect(await screen.findByText('Server down')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETAPP-006: choosing a scheme applies it to the DOM and persists it debounced', async () => {
@@ -146,7 +146,7 @@ describe('MSettingsAppearance', () => {
     renderAppearance();
 
     await user.click(screen.getByRole('button', { name: 'Amber' }));
-    await screen.findByText('Blob too large');
+    expect(await screen.findByText('Blob too large')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETAPP-009: the custom scheme reveals the accent presets and the contrast badge', async () => {

@@ -18,7 +18,7 @@ beforeEach(() => {
   resetAllStores();
 });
 
-/** Template rows carry [chevron, edit, delete]; category headers [add item, edit, delete]. */
+/** Template rows carry [chevron, name, edit, delete]; category headers [add item, edit, delete]. */
 function rowButtons(name: string, selector: string): HTMLElement[] {
   const row = screen.getByText(name).closest(selector) as HTMLElement;
   return within(row).getAllByRole('button');
@@ -250,7 +250,7 @@ describe('PackingTemplateManager', () => {
     await user.click(screen.getByText('Add category'));
     const catInput = screen.getByPlaceholderText('Category name (e.g. Clothing)');
     await user.type(catInput, 'Electronics{Enter}');
-    await screen.findByText('Electronics');
+    expect(await screen.findByText('Electronics')).toBeInTheDocument();
   });
 
   it('FE-ADMIN-PKG-012: adding an item to a category', async () => {
@@ -280,7 +280,7 @@ describe('PackingTemplateManager', () => {
     await user.type(itemInput, 'Sandals');
     // Submit via Enter key (the input's onKeyDown handler triggers handleAddItem)
     await user.type(itemInput, '{Enter}');
-    await screen.findByText('Sandals');
+    expect(await screen.findByText('Sandals')).toBeInTheDocument();
   });
 
   it('FE-ADMIN-PKG-013: renaming a category inline updates its name', async () => {
@@ -312,7 +312,7 @@ describe('PackingTemplateManager', () => {
     const catInput = screen.getByDisplayValue('Clothing');
     await user.clear(catInput);
     await user.type(catInput, 'Shoes{Enter}');
-    await screen.findByText('Shoes');
+    expect(await screen.findByText('Shoes')).toBeInTheDocument();
   });
 
   it('FE-ADMIN-PKG-014: deleting a category removes it and its items', async () => {
@@ -379,7 +379,7 @@ describe('PackingTemplateManager', () => {
     const input = screen.getByDisplayValue('T-shirt');
     await user.clear(input);
     await user.type(input, 'Tank Top{Enter}');
-    await screen.findByText('Tank Top');
+    expect(await screen.findByText('Tank Top')).toBeInTheDocument();
   });
 
   it('FE-ADMIN-PKG-016: deleting an item removes it from the list', async () => {
@@ -588,11 +588,11 @@ describe('PackingTemplateManager', () => {
     render(<><ToastContainer /><PackingTemplateManager /></>);
     await expandBeachTrip(user, 'Clothing');
 
-    await user.click(templateButtons('Beach Trip')[2]);
+    await user.click(templateButtons('Beach Trip')[3]);
     expect(await screen.findByText('Failed to delete template')).toBeInTheDocument();
     expect(screen.getByText('Clothing')).toBeInTheDocument();
 
-    await user.click(templateButtons('Beach Trip')[2]);
+    await user.click(templateButtons('Beach Trip')[3]);
     await screen.findByText('Template deleted');
     await waitFor(() => expect(screen.queryByText('Clothing')).not.toBeInTheDocument());
     expect(screen.getByText('No templates created yet')).toBeInTheDocument();
@@ -611,14 +611,14 @@ describe('PackingTemplateManager', () => {
     render(<><ToastContainer /><PackingTemplateManager /></>);
     await screen.findByText('Beach Trip');
 
-    await user.click(templateButtons('Beach Trip')[1]);
+    await user.click(templateButtons('Beach Trip')[2]);
     await user.clear(screen.getByDisplayValue('Beach Trip'));
     await user.type(screen.getByRole('textbox'), '{Enter}');
     await waitFor(() => expect(screen.getByText('Beach Trip')).toBeInTheDocument());
     expect(puts).toBe(0);
 
     // Blurring the field commits the pending name — here the request fails
-    await user.click(templateButtons('Beach Trip')[1]);
+    await user.click(templateButtons('Beach Trip')[2]);
     const input = screen.getByDisplayValue('Beach Trip');
     await user.clear(input);
     await user.type(input, 'Winter');

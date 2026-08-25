@@ -86,7 +86,7 @@ function OptionButton({
   children: React.ReactNode
 }) {
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       style={{
         display: 'flex', alignItems: 'center', gap: 8,
@@ -154,7 +154,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
 
   const ResetButton = ({ field }: { field: keyof Defaults }) =>
     isSet(field) ? (
-      <button
+      <button type="button"
         onClick={() => reset(field)}
         className="text-xs ml-2 text-content-faint underline"
         style={{ background: 'none', border: 'none', cursor: 'pointer' }}
@@ -185,7 +185,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
     transport_mode: null,
     website: null,
     phone: null,
-    created_at: Date(),
+    created_at: String(new Date()),
   }], [])
 
   if (!loaded) {

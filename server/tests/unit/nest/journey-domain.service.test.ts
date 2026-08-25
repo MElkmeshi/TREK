@@ -1161,8 +1161,12 @@ describe('onPlaceDeleted', () => {
     const trip = createTrip(testDb, user.id, { title: 'Unlinked' });
     const place = createPlace(testDb, trip.id, { name: 'Nowhere' });
 
-    // Should not throw
-    svc.onPlaceDeleted(place.id);
+    expect(() => svc.onPlaceDeleted(place.id)).not.toThrow();
+
+    const orphaned = testDb.prepare(
+      "SELECT COUNT(*) AS n FROM journey_entries WHERE source_place_id = ?"
+    ).get(place.id) as { n: number };
+    expect(orphaned.n).toBe(0);
   });
 });
 

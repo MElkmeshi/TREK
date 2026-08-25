@@ -87,7 +87,7 @@ describe('DevNotificationsPanel', () => {
     render(<><ToastContainer /><DevNotificationsPanel /></>);
     await screen.findByText('Type Testing');
     await user.click(screen.getByText('Simple → Me').closest('button')!);
-    await screen.findByText('Sent: simple-me');
+    expect(await screen.findByText('Sent: simple-me')).toBeInTheDocument();
   });
 
   it('FE-ADMIN-DEVNOTIF-007: all buttons disabled while a send is in-flight', async () => {
@@ -101,8 +101,8 @@ describe('DevNotificationsPanel', () => {
     render(<><ToastContainer /><DevNotificationsPanel /></>);
     await screen.findByText('Type Testing');
 
-    // Fire the click but do not await — handler never resolves so sending stays true
-    void user.click(screen.getByText('Simple → Me').closest('button')!);
+    // The request handler never resolves, so sending stays true after the click settles
+    await user.click(screen.getByText('Simple → Me').closest('button')!);
 
     await waitFor(() => {
       const buttons = screen.getAllByRole('button');
@@ -120,7 +120,7 @@ describe('DevNotificationsPanel', () => {
     render(<><ToastContainer /><DevNotificationsPanel /></>);
     await screen.findByText('Type Testing');
     await user.click(screen.getByText('Simple → Me').closest('button')!);
-    await screen.findByText('No channel configured');
+    expect(await screen.findByText('No channel configured')).toBeInTheDocument();
   });
 
   it('FE-ADMIN-DEVNOTIF-008b: a failure without an error field falls back to the generic text', async () => {
@@ -133,7 +133,7 @@ describe('DevNotificationsPanel', () => {
     render(<><ToastContainer /><DevNotificationsPanel /></>);
     await screen.findByText('Type Testing');
     await user.click(screen.getByText('Simple → Me').closest('button')!);
-    await screen.findByText('Failed');
+    expect(await screen.findByText('Failed')).toBeInTheDocument();
   });
 
   it('FE-ADMIN-DEVNOTIF-009: changing trip selector updates payload targetId', async () => {

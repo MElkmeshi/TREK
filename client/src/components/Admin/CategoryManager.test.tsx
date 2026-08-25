@@ -27,17 +27,17 @@ describe('CategoryManager', () => {
 
   it('FE-COMP-CAT-002: shows Categories title', async () => {
     render(<CategoryManager />);
-    await screen.findByText('Categories');
+    expect(await screen.findByText('Categories')).toBeInTheDocument();
   });
 
   it('FE-COMP-CAT-003: shows empty state when no categories', async () => {
     render(<CategoryManager />);
-    await screen.findByText('No categories yet');
+    expect(await screen.findByText('No categories yet')).toBeInTheDocument();
   });
 
   it('FE-COMP-CAT-004: shows New Category button', async () => {
     render(<CategoryManager />);
-    await screen.findByText('New Category');
+    expect(await screen.findByText('New Category')).toBeInTheDocument();
   });
 
   it('FE-COMP-CAT-005: clicking New Category shows form', async () => {
@@ -129,7 +129,7 @@ describe('CategoryManager', () => {
 
   it('FE-COMP-CAT-010: shows subtitle text', async () => {
     render(<CategoryManager />);
-    await screen.findByText('Manage categories for places');
+    expect(await screen.findByText('Manage categories for places')).toBeInTheDocument();
   });
 
   it('FE-COMP-CAT-011: category count is shown', async () => {

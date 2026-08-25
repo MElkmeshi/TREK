@@ -2,6 +2,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { http, HttpResponse, delay } from 'msw'
+import { localIsoDate } from '../../utils/localDate'
 import userEvent from '@testing-library/user-event'
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render'
 import { server } from '../../../tests/helpers/msw/server'
@@ -516,7 +517,7 @@ describe('EntryEditor', () => {
       entry_date: '', photos: undefined as unknown as JourneyPhoto[],
     }))
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = localIsoDate() // local, matching the editor's default — not the UTC date
     const label = new Date(today + 'T00:00:00').toLocaleDateString(undefined, {
       month: 'short', day: 'numeric', year: 'numeric',
     })

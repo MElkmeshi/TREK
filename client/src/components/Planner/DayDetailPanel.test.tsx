@@ -158,7 +158,7 @@ describe('DayDetailPanel', () => {
       ),
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
-    await screen.findByText(/22°C/);
+    expect(await screen.findByText(/22°C/)).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-011: weather in Fahrenheit when setting is fahrenheit', async () => {
@@ -171,7 +171,7 @@ describe('DayDetailPanel', () => {
       ),
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
-    await screen.findByText(/32°F/);
+    expect(await screen.findByText(/32°F/)).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-012: no weather shows "No weather data" message', async () => {
@@ -179,7 +179,7 @@ describe('DayDetailPanel', () => {
       http.get('/api/weather/detailed', () => HttpResponse.json({ error: true })),
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
-    await screen.findByText(/No weather/i);
+    expect(await screen.findByText(/No weather/i)).toBeInTheDocument();
   });
 
   // ── Reservations ─────────────────────────────────────────────────────────────
@@ -197,7 +197,7 @@ describe('DayDetailPanel', () => {
       assignments={{ '1': [{ id: 50, place, place_id: place.id, day_id: 1, order_index: 0, notes: null }] }}
       reservations={[reservation]}
     />);
-    await screen.findByText('Museum Tour Ticket');
+    expect(await screen.findByText('Museum Tour Ticket')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-014: reservations from OTHER days are not shown', async () => {
@@ -266,7 +266,7 @@ describe('DayDetailPanel', () => {
       ),
     );
     render(<DayDetailPanel {...defaultProps} />);
-    await screen.findByText('Grand Hotel');
+    expect(await screen.findByText('Grand Hotel')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-018: check-in time shown for check-in day', async () => {
@@ -305,7 +305,7 @@ describe('DayDetailPanel', () => {
       day={checkOutDay}
       days={[day, checkOutDay]}
     />);
-    await screen.findByText('11:00');
+    expect(await screen.findByText('11:00')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-020: confirmation code shown', async () => {
@@ -320,7 +320,7 @@ describe('DayDetailPanel', () => {
       ),
     );
     render(<DayDetailPanel {...defaultProps} />);
-    await screen.findByText('HOTEL99');
+    expect(await screen.findByText('HOTEL99')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-021: accommodation edit/remove buttons shown when canEditDays=true', async () => {
@@ -396,7 +396,7 @@ describe('DayDetailPanel', () => {
   it('FE-PLANNER-DAYDETAIL-023: "Add accommodation" button visible when canEditDays=true and no accommodation', async () => {
     seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
     render(<DayDetailPanel {...defaultProps} />);
-    await screen.findByText(/Add accommodation/i);
+    expect(await screen.findByText(/Add accommodation/i)).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-024: clicking add accommodation opens hotel picker', async () => {
@@ -466,7 +466,7 @@ describe('DayDetailPanel', () => {
     await screen.findByText('5.2 mm');
     await screen.findByText('30 km/h');
     await screen.findByText('06:30');
-    await screen.findByText('20:15');
+    expect(await screen.findByText('20:15')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-027: weather chips show Fahrenheit wind speed', async () => {
@@ -487,7 +487,7 @@ describe('DayDetailPanel', () => {
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
     // 50 km/h * 0.621371 ≈ 31 mph
-    await screen.findByText('31 mph');
+    expect(await screen.findByText('31 mph')).toBeInTheDocument();
   });
 
   // ── Hotel picker interactions ─────────────────────────────────────────────────
@@ -516,7 +516,7 @@ describe('DayDetailPanel', () => {
     await userEvent.click(addButton);
     await screen.findByText('Hotel du Nord');
     await screen.findByText('Hotel du Sud');
-    await screen.findByText('102 Quai de Jemmapes');
+    expect(await screen.findByText('102 Quai de Jemmapes')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-030: selecting a place in hotel picker enables save button', async () => {
@@ -691,7 +691,7 @@ describe('DayDetailPanel', () => {
       ),
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
-    await screen.findByText(/Ø/);
+    expect(await screen.findByText(/Ø/)).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-038: hotel picker with category filter renders category buttons', async () => {
@@ -722,7 +722,7 @@ describe('DayDetailPanel', () => {
     render(<DayDetailPanel {...defaultProps} />);
     await screen.findByText('Existing Hotel');
     // "Add accommodation" dashed button should also appear for adding more
-    await screen.findByText(/Add accommodation/i);
+    expect(await screen.findByText(/Add accommodation/i)).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-041: save new accommodation calls API and updates list', async () => {
@@ -838,7 +838,7 @@ describe('DayDetailPanel', () => {
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
     // Should show "No weather" after error (catch sets weather to null)
-    await screen.findByText(/No weather/i);
+    expect(await screen.findByText(/No weather/i)).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-046: save edited accommodation calls update API', async () => {
@@ -1251,7 +1251,7 @@ describe('DayDetailPanel', () => {
 
     // Intermediate day (id=1, position 9): old filter: 1>=17 → false. New: 9 in [0,15] → visible.
     render(<DayDetailPanel {...defaultProps} day={days[9]} days={days} />);
-    await screen.findByText('Full Trip Hotel');
+    expect(await screen.findByText('Full Trip Hotel')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-040: 12h time format renders reservation time with AM/PM', async () => {

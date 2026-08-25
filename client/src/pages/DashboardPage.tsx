@@ -52,7 +52,7 @@ function tripGradient(id: number): string { return GRADIENTS[id % GRADIENTS.leng
 function splitDate(dateStr: string | null | undefined, locale: string): { d: string; m: string; y: string } | null {
   if (!dateStr) return null
   const date = new Date(dateStr + 'T00:00:00Z')
-  if (isNaN(date.getTime())) return null // malformed date — render a dash, never crash
+  if (Number.isNaN(date.getTime())) return null // malformed date — render a dash, never crash
   const otherYear = date.getUTCFullYear() !== new Date().getUTCFullYear()
   return {
     d: date.toLocaleDateString(locale, { day: 'numeric', timeZone: 'UTC' }),
@@ -67,7 +67,7 @@ function splitDate(dateStr: string | null | undefined, locale: string): { d: str
 function fullDate(dateStr: string | null | undefined, locale: string): string | null {
   if (!dateStr) return null
   const date = new Date(dateStr + 'T00:00:00Z')
-  if (isNaN(date.getTime())) return null
+  if (Number.isNaN(date.getTime())) return null
   const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', timeZone: 'UTC' }
   if (date.getUTCFullYear() !== new Date().getUTCFullYear()) opts.year = 'numeric'
   return date.toLocaleDateString(locale, opts)
@@ -151,7 +151,7 @@ function DashboardPageDesktop(): React.ReactElement {
             {loadError && (
               <div className="dash-error" role="alert">
                 <span className="dash-error-txt">{t('dashboard.loadErrorBanner')}</span>
-                <button className="dash-error-retry" onClick={retryLoad}>
+                <button type="button" className="dash-error-retry" onClick={retryLoad}>
                   <RefreshCw size={15} />
                   {t('dashboard.retry')}
                 </button>
@@ -177,11 +177,11 @@ function DashboardPageDesktop(): React.ReactElement {
                 <h3 className="sec-title">{t('dashboard.title')}</h3>
                 <div className="sec-tools">
                   <div className="seg">
-                    <button className={tripFilter === 'planned' ? 'on' : ''} onClick={() => setTripFilter('planned')}>{t('dashboard.filter.planned')}</button>
-                    <button className={tripFilter === 'archive' ? 'on' : ''} onClick={() => setTripFilter('archive')}>{t('dashboard.archived')}</button>
-                    <button className={tripFilter === 'completed' ? 'on' : ''} onClick={() => setTripFilter('completed')}>{t('dashboard.mobile.completed')}</button>
+                    <button type="button" className={tripFilter === 'planned' ? 'on' : ''} onClick={() => setTripFilter('planned')}>{t('dashboard.filter.planned')}</button>
+                    <button type="button" className={tripFilter === 'archive' ? 'on' : ''} onClick={() => setTripFilter('archive')}>{t('dashboard.archived')}</button>
+                    <button type="button" className={tripFilter === 'completed' ? 'on' : ''} onClick={() => setTripFilter('completed')}>{t('dashboard.mobile.completed')}</button>
                   </div>
-                  <button
+                  <button type="button"
                     className="tool-action"
                     aria-label="Subscribe to all trips calendar"
                     title="Subscribe to all trips"
@@ -190,7 +190,7 @@ function DashboardPageDesktop(): React.ReactElement {
                   >
                     <CalendarPlus size={17} />
                   </button>
-                  <button className="tool-action" aria-label={t('dashboard.aria.toggleView')} onClick={toggleViewMode} style={{ width: 38, height: 38, borderRadius: 11 }}>
+                  <button type="button" className="tool-action" aria-label={t('dashboard.aria.toggleView')} onClick={toggleViewMode} style={{ width: 38, height: 38, borderRadius: 11 }}>
                     {viewMode === 'grid' ? <List size={17} /> : <LayoutGrid size={17} />}
                   </button>
                 </div>
@@ -228,7 +228,7 @@ function DashboardPageDesktop(): React.ReactElement {
                   />
                 ))}
                 {tripFilter === 'planned' && !isLoading && (
-                  <button className="add-trip-card" onClick={() => { setEditingTrip(null); setShowForm(true) }}>
+                  <button type="button" className="add-trip-card" onClick={() => { setEditingTrip(null); setShowForm(true) }}>
                     <div>
                       <div className="circ"><Plus size={20} /></div>
                       <div className="ttl">{t('dashboard.newTrip')}</div>
@@ -252,7 +252,7 @@ function DashboardPageDesktop(): React.ReactElement {
         </main>
       </div>
 
-      <button
+      <button type="button"
         className="fab-new-trip"
         onClick={() => { setEditingTrip(null); setShowForm(true) }}
         aria-label={t('dashboard.newTrip')}
@@ -393,7 +393,13 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
   )
 
   return (
-    <section className="hero-trip" onClick={onOpen}>
+    <div
+      className="hero-trip"
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpen() } }}
+    >
       {trip.cover_image
         ? <img className="bg" src={trip.cover_image} alt={trip.title} />
         : <div className="bg" style={{ background: tripGradient(trip.id) }} />}
@@ -405,10 +411,10 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
             {badge}
           </div>
           <div className="hero-tools">
-            <button className="hero-tool" aria-label={t('common.edit')} title={t('common.edit')} onClick={(e) => stop(e, onEdit)}><Edit2 size={17} strokeWidth={2.2} /></button>
-            <button className="hero-tool" aria-label={t('dashboard.aria.duplicate')} title={t('dashboard.aria.duplicate')} onClick={(e) => stop(e, onCopy)}><Copy size={17} strokeWidth={2.2} /></button>
-            <button className="hero-tool" aria-label={archiveLabel} title={archiveLabel} onClick={(e) => stop(e, onArchive)}>{trip.is_archived ? <ArchiveRestore size={17} strokeWidth={2.2} /> : <Archive size={17} strokeWidth={2.2} />}</button>
-            <button className="hero-tool" aria-label={t('common.delete')} title={t('common.delete')} onClick={(e) => stop(e, onDelete)}><Trash2 size={17} strokeWidth={2.2} /></button>
+            <button type="button" className="hero-tool" aria-label={t('common.edit')} title={t('common.edit')} onClick={(e) => stop(e, onEdit)}><Edit2 size={17} strokeWidth={2.2} /></button>
+            <button type="button" className="hero-tool" aria-label={t('dashboard.aria.duplicate')} title={t('dashboard.aria.duplicate')} onClick={(e) => stop(e, onCopy)}><Copy size={17} strokeWidth={2.2} /></button>
+            <button type="button" className="hero-tool" aria-label={archiveLabel} title={archiveLabel} onClick={(e) => stop(e, onArchive)}>{trip.is_archived ? <ArchiveRestore size={17} strokeWidth={2.2} /> : <Archive size={17} strokeWidth={2.2} />}</button>
+            <button type="button" className="hero-tool" aria-label={t('common.delete')} title={t('common.delete')} onClick={(e) => stop(e, onDelete)}><Trash2 size={17} strokeWidth={2.2} /></button>
           </div>
         </div>
 
@@ -424,12 +430,12 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
               ))}
             </div>
           )}
-          <div className="hero-pass" onClick={(e) => { e.stopPropagation(); onOpen() }}>
+          <div className="hero-pass" role="presentation" onClick={(e) => { e.stopPropagation(); onOpen() }}>
             <div className="hero-pass-inner">{passCells}</div>
           </div>
         </div>
       </div>
-    </section>
+    </div>
   )
 }
 
@@ -552,17 +558,23 @@ function TripCard({ trip, locale, badges, onOpen, onEdit, onCopy, onArchive, onD
   const stop = (e: React.MouseEvent, fn: () => void) => { e.stopPropagation(); fn() }
 
   return (
-    <article className="trip-card" onClick={onOpen}>
+    <div
+      className="trip-card"
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpen() } }}
+    >
       <div className="trip-cover">
         {trip.cover_image
           ? <img src={trip.cover_image} alt={trip.title} />
           : <div style={{ width: '100%', height: '100%', background: tripGradient(trip.id) }} />}
         <div className={`trip-status ${statusClass}`}><span className="indicator" /> {statusLabel}</div>
         <div className="trip-actions">
-          <button className="trip-action-btn" aria-label={t('common.edit')} title={t('common.edit')} onClick={(e) => stop(e, onEdit)}><Edit2 size={17} strokeWidth={2.2} /></button>
-          <button className="trip-action-btn" aria-label={t('dashboard.aria.duplicate')} title={t('dashboard.aria.duplicate')} onClick={(e) => stop(e, onCopy)}><Copy size={17} strokeWidth={2.2} /></button>
-          <button className="trip-action-btn" aria-label={archiveLabel} title={archiveLabel} onClick={(e) => stop(e, onArchive)}>{trip.is_archived ? <ArchiveRestore size={17} strokeWidth={2.2} /> : <Archive size={17} strokeWidth={2.2} />}</button>
-          <button className="trip-action-btn" aria-label={t('common.delete')} title={t('common.delete')} onClick={(e) => stop(e, onDelete)}><Trash2 size={17} strokeWidth={2.2} /></button>
+          <button type="button" className="trip-action-btn" aria-label={t('common.edit')} title={t('common.edit')} onClick={(e) => stop(e, onEdit)}><Edit2 size={17} strokeWidth={2.2} /></button>
+          <button type="button" className="trip-action-btn" aria-label={t('dashboard.aria.duplicate')} title={t('dashboard.aria.duplicate')} onClick={(e) => stop(e, onCopy)}><Copy size={17} strokeWidth={2.2} /></button>
+          <button type="button" className="trip-action-btn" aria-label={archiveLabel} title={archiveLabel} onClick={(e) => stop(e, onArchive)}>{trip.is_archived ? <ArchiveRestore size={17} strokeWidth={2.2} /> : <Archive size={17} strokeWidth={2.2} />}</button>
+          <button type="button" className="trip-action-btn" aria-label={t('common.delete')} title={t('common.delete')} onClick={(e) => stop(e, onDelete)}><Trash2 size={17} strokeWidth={2.2} /></button>
         </div>
         <div className="trip-cover-content">
           <h3 className="trip-name">{trip.title}</h3>
@@ -585,7 +597,7 @@ function TripCard({ trip, locale, badges, onOpen, onEdit, onCopy, onArchive, onD
         </div>
         <TripCardBadges items={badges ?? []} />
       </div>
-    </article>
+    </div>
   )
 }
 
@@ -633,10 +645,10 @@ function CurrencyTool(): React.ReactElement {
     }).catch(() => { /* keep localStorage; retry on next load */ })
   }, [isLoaded, updateSetting])
 
-  const currencies = rates ? Object.keys(rates).sort() : CURRENCIES
+  const currencies = rates ? Object.keys(rates).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)) : CURRENCIES
   const ccyOptions = currencies.map(c => ({ value: c, label: c }))
   const rate = rates?.[to] ?? null
-  const converted = rate != null ? (parseFloat(amount.replace(',', '.')) || 0) * rate : null
+  const converted = rate != null ? (Number.parseFloat(amount.replace(',', '.')) || 0) * rate : null
 
   const swap = () => { setFrom(to); setTo(from) }
 
@@ -644,7 +656,7 @@ function CurrencyTool(): React.ReactElement {
     <div className="tool">
       <div className="tool-head">
         <div className="tool-title"><RefreshCw size={14} /> {t('dashboard.currency')}</div>
-        <button className="tool-action" aria-label={t('dashboard.aria.refreshRates')} onClick={fetchRate}><RefreshCw size={14} /></button>
+        <button type="button" className="tool-action" aria-label={t('dashboard.aria.refreshRates')} onClick={fetchRate}><RefreshCw size={14} /></button>
       </div>
       <div className="fx-input">
         <div className="fx-field">
@@ -652,7 +664,7 @@ function CurrencyTool(): React.ReactElement {
           <input className="amt mono" value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal" />
           <CustomSelect value={from} onChange={v => setFrom(String(v))} options={ccyOptions} searchable size="sm" style={{ marginTop: 6 }} />
         </div>
-        <button className="fx-swap" aria-label={t('dashboard.aria.swapCurrencies')} onClick={swap}><ArrowRightLeft size={14} /></button>
+        <button type="button" className="fx-swap" aria-label={t('dashboard.aria.swapCurrencies')} onClick={swap}><ArrowRightLeft size={14} /></button>
         <div className="fx-field">
           <div className="lbl">{t('dashboard.fx.to')}</div>
           <input className="amt mono" value={converted != null ? converted.toFixed(2) : '—'} readOnly />
@@ -739,7 +751,7 @@ function TimezoneTool({ locale }: { locale: string }): React.ReactElement {
     <div className="tool">
       <div className="tool-head">
         <div className="tool-title"><Clock size={14} /> {t('dashboard.timezone')}</div>
-        <button className="tool-action" aria-label={t('dashboard.aria.addTimezone')} onClick={() => setAdding(a => !a)}>
+        <button type="button" className="tool-action" aria-label={t('dashboard.aria.addTimezone')} onClick={() => setAdding(a => !a)}>
           {adding ? <X size={14} /> : <Plus size={14} />}
         </button>
       </div>
@@ -757,7 +769,7 @@ function TimezoneTool({ locale }: { locale: string }): React.ReactElement {
               <div className="tz-sub">{offsetLabel(tz)}</div>
             </div>
             <div className="tz-time mono">{timeIn(tz)}</div>
-            <button className="tz-del" aria-label={t('dashboard.aria.removeTimezone', { city: shortZone(tz) })} onClick={() => removeZone(tz)}><X size={13} /></button>
+            <button type="button" className="tz-del" aria-label={t('dashboard.aria.removeTimezone', { city: shortZone(tz) })} onClick={() => removeZone(tz)}><X size={13} /></button>
           </div>
         ))}
         {zones.length === 0 && (
@@ -793,7 +805,9 @@ function UpcomingTool({ items, locale, onOpen }: {
             const timeStr = parsed.time ? formatTime(parsed.time, locale, timeFormat) : null
             const typeClass = RES_TYPE_CLASS[r.type] || 'other'
             return (
-              <div className="upc-item" key={r.id} onClick={() => onOpen(r.trip_id)}>
+              <div className="upc-item" key={r.id} onClick={() => onOpen(r.trip_id)}
+                role="button" tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(r.trip_id) } }}>
                 <div className="upc-date"><div className="d mono">{dateStr?.d ?? '–'}</div><div className="m">{dateStr?.m ?? ''}</div></div>
                 <div className="upc-info">
                   <div className="t">{r.title}</div>

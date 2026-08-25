@@ -81,7 +81,7 @@ describe('PhotoProvidersSection', () => {
   it('FE-COMP-PHOTOPROVIDERS-003: renders a section card for each active provider', async () => {
     seedMemoriesEnabled();
     render(<PhotoProvidersSection />);
-    await screen.findByText('Immich');
+    expect(await screen.findByText('Immich')).toBeInTheDocument();
   });
 
   it('FE-COMP-PHOTOPROVIDERS-004: renders field inputs for each provider field', async () => {
@@ -95,7 +95,7 @@ describe('PhotoProvidersSection', () => {
   it('FE-COMP-PHOTOPROVIDERS-005: non-secret field is prefilled with value from settings API', async () => {
     seedMemoriesEnabled();
     render(<PhotoProvidersSection />);
-    await screen.findByDisplayValue('https://photos.example.com');
+    expect(await screen.findByDisplayValue('https://photos.example.com')).toBeInTheDocument();
   });
 
   it('FE-COMP-PHOTOPROVIDERS-006: secret field is NOT prefilled (blank value)', async () => {
@@ -240,7 +240,9 @@ describe('PhotoProvidersSection', () => {
     await screen.findByText('Immich');
     const testBtn = screen.getByRole('button', { name: /test connection/i });
     await user.click(testBtn);
-    await screen.findByText(/connected/i);
+    // Exact text on purpose: the badge always renders, and a loose /connected/i
+    // also matches the "Not connected" it starts out as.
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
   });
 
   it('FE-COMP-PHOTOPROVIDERS-015: failed test shows error toast', async () => {
@@ -258,7 +260,7 @@ describe('PhotoProvidersSection', () => {
     await screen.findByText('Immich');
     const testBtn = screen.getByRole('button', { name: /test connection/i });
     await user.click(testBtn);
-    await screen.findByText(/Auth failed/i);
+    expect(await screen.findByText(/Auth failed/i)).toBeInTheDocument();
   });
 
   it('FE-COMP-PHOTOPROVIDERS-016: Test button is disabled while test is in progress', async () => {
@@ -327,7 +329,7 @@ describe('PhotoProvidersSection', () => {
     seedMemoriesEnabled([fakeProvider, secondProvider]);
     render(<PhotoProvidersSection />);
     await screen.findByText('Immich');
-    await screen.findByText('Piwigo');
+    expect(await screen.findByText('Piwigo')).toBeInTheDocument();
   });
 });
 
@@ -433,7 +435,7 @@ describe('PhotoProvidersSection – checkbox fields and failures', () => {
     await screen.findByText('Immich');
     await user.click(screen.getByRole('button', { name: /test connection/i }));
 
-    await screen.findByText('Could not connect to Immich');
+    expect(await screen.findByText('Could not connect to Immich')).toBeInTheDocument();
   });
 
   it('FE-COMP-PHOTOPROVIDERS-024: a provider without a test POST route probes over GET instead', async () => {

@@ -123,7 +123,7 @@ describe('MSettingsPlugins', () => {
     server.use(http.get('/api/plugin-activity', () => HttpResponse.json({}, { status: 500 })));
     renderScreen();
 
-    await screen.findByText('No plugin activity yet.');
+    expect(await screen.findByText('No plugin activity yet.')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETPLG-005: declared user fields render as the matching mobile controls', async () => {
@@ -296,7 +296,7 @@ describe('MSettingsPlugins', () => {
     await screen.findByText('Success');
 
     await user.click(screen.getByRole('button', { name: 'Probe' }));
-    await screen.findByText('Error');
+    expect(await screen.findByText('Error')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETPLG-014: unlabelled fields fall back to their key, hints render below', async () => {
@@ -335,7 +335,7 @@ describe('MSettingsPlugins', () => {
 
     await screen.findByText('Actions');
     await user.click(screen.getByRole('button', { name: 'Test connection' }));
-    await screen.findByText('Error');
+    expect(await screen.findByText('Error')).toBeInTheDocument();
   });
 
   it('FE-MOB-SETPLG-016: a danger action asks for confirmation before it runs', async () => {

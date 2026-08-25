@@ -15,10 +15,16 @@ export function convertHoursLine(line: string, timeFormat: string): string {
   const hasAmPm = /\d{1,2}:\d{2}\s*(AM|PM)/i.test(line)
 
   if (timeFormat === '12h' && !hasAmPm) {
-    // 24h → 12h: "10:00" → "10:00 AM", "21:00" → "9:00 PM", "Uhr" entfernen
-    return line.replace(/\s*Uhr/g, '').replace(/(\d{1,2}):(\d{2})/g, (match, h, m) => {
-      const hour = parseInt(h)
-      if (isNaN(hour)) return match
+    // 24h → 12h: "10:00" → "10:00 AM", "21:00" → "9:00 PM", "Uhr" entfernen.
+    // split/trimEnd rather than /\s*Uhr/g: that pattern walks the rest of the line
+    // from every space it passes, so a line with no "Uhr" in it costs a pass per
+    // space. Cutting on the word and trimming the piece in front of it is the
+    // same edit, once.
+    const parts = line.split('Uhr')
+    const withoutUhr = parts.map((part, i) => (i < parts.length - 1 ? part.trimEnd() : part)).join('')
+    return withoutUhr.replace(/(\d{1,2}):(\d{2})/g, (match, h, m) => {
+      const hour = Number.parseInt(h)
+      if (Number.isNaN(hour)) return match
       const period = hour >= 12 ? 'PM' : 'AM'
       const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
       return `${h12}:${m} ${period}`
@@ -27,7 +33,7 @@ export function convertHoursLine(line: string, timeFormat: string): string {
   if (timeFormat !== '12h' && hasAmPm) {
     // 12h → 24h: "10:00 AM" → "10:00", "9:00 PM" → "21:00"
     return line.replace(/(\d{1,2}):(\d{2})\s*(AM|PM)/gi, (_, h, m, p) => {
-      let hour = parseInt(h)
+      let hour = Number.parseInt(h)
       if (p.toUpperCase() === 'PM' && hour !== 12) hour += 12
       if (p.toUpperCase() === 'AM' && hour === 12) hour = 0
       return `${String(hour).padStart(2, '0')}:${m}`

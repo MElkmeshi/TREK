@@ -47,7 +47,7 @@ describe('CollabNotes', () => {
 
   it('FE-COMP-NOTES-002: shows empty state when no notes', async () => {
     render(<CollabNotes {...defaultProps} />);
-    await screen.findByText('No notes yet');
+    expect(await screen.findByText('No notes yet')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTES-003: shows New Note button', async () => {
@@ -70,7 +70,7 @@ describe('CollabNotes', () => {
       )
     );
     render(<CollabNotes {...defaultProps} />);
-    await screen.findByText('Packing Tips');
+    expect(await screen.findByText('Packing Tips')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTES-005: clicking New Note opens modal', async () => {
@@ -79,7 +79,7 @@ describe('CollabNotes', () => {
     await screen.findByText('No notes yet');
     await user.click(screen.getByText('New Note'));
     // Modal opens with a title input — placeholder is "Note title" (no ellipsis)
-    await screen.findByPlaceholderText('Note title');
+    expect(await screen.findByPlaceholderText('Note title')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTES-006: note title is shown in the grid', async () => {
@@ -96,7 +96,7 @@ describe('CollabNotes', () => {
       )
     );
     render(<CollabNotes {...defaultProps} />);
-    await screen.findByText('My Checklist');
+    expect(await screen.findByText('My Checklist')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTES-007: multiple notes all render', async () => {
@@ -117,8 +117,11 @@ describe('CollabNotes', () => {
 
   it('FE-COMP-NOTES-008: Notes title heading is shown', async () => {
     render(<CollabNotes {...defaultProps} />);
+    // The loading panel renders its own copy of the heading and swaps the whole
+    // node out once the fetch settles, so wait for the loaded state first.
+    await screen.findByText('No notes yet');
     // collab.notes.title = "Notes"
-    await screen.findByText('Notes');
+    expect(screen.getByText('Notes')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTES-009: create note calls POST API', async () => {
@@ -236,7 +239,7 @@ describe('CollabNotes', () => {
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Editable Note');
     await user.click(screen.getByTitle('Edit'));
-    await screen.findByDisplayValue('Editable Note');
+    expect(await screen.findByDisplayValue('Editable Note')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTES-016: category filter hides notes from other categories', async () => {
@@ -280,7 +283,7 @@ describe('CollabNotes', () => {
         },
       });
     });
-    await screen.findByText('Live Note');
+    expect(await screen.findByText('Live Note')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTES-018: WebSocket collab:note:deleted event removes note', async () => {
@@ -403,7 +406,7 @@ describe('CollabNotes', () => {
     await screen.findByText('No notes yet');
     await user.click(screen.getByTitle('Manage Categories'));
     // The modal header renders "Category Settings" or similar
-    await screen.findByText('Manage Categories', { selector: 'h3' });
+    expect(await screen.findByText('Manage Categories', { selector: 'h3' })).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTES-025: CategorySettingsModal shows no categories message when empty', async () => {
@@ -411,7 +414,7 @@ describe('CollabNotes', () => {
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('No notes yet');
     await user.click(screen.getByTitle('Manage Categories'));
-    await screen.findByText('No categories yet');
+    expect(await screen.findByText('No categories yet')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTES-026: CategorySettingsModal add new category', async () => {
@@ -426,7 +429,7 @@ describe('CollabNotes', () => {
     const addBtn = newCatInput.nextElementSibling as HTMLElement;
     await user.click(addBtn);
     // "Transport" category appears in the modal
-    await screen.findByText('Transport');
+    expect(await screen.findByText('Transport')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTES-027: CategorySettingsModal close button dismisses it', async () => {
@@ -674,7 +677,7 @@ describe('CollabNotes', () => {
     // Click the PDF badge to open FilePreviewPortal
     await user.click(screen.getByText('PDF'));
     // FilePreviewPortal renders the file name in the header
-    await screen.findByText('document.pdf');
+    expect(await screen.findByText('document.pdf')).toBeInTheDocument();
   });
 
   it('FE-COMP-NOTES-037: note with website shows website thumbnail component', async () => {
@@ -855,7 +858,7 @@ describe('CollabNotes', () => {
     await user.click(screen.getByTitle('Manage Categories'));
     await screen.findByText('Manage Categories', { selector: 'h3' });
     // Find the "Transport" category name span and click to edit
-    const categoryNameSpan = screen.getAllByText('Transport').find(el => el.tagName === 'SPAN' && el.title === 'Click to rename');
+    const categoryNameSpan = screen.getAllByText('Transport').find(el => el.tagName === 'BUTTON' && el.title === 'Click to rename');
     if (categoryNameSpan) {
       await user.click(categoryNameSpan);
       // Now an input with value "Transport" should appear
@@ -977,7 +980,7 @@ describe('CollabNotes', () => {
     await screen.findByText('Manage Categories', { selector: 'h3' });
 
     // Find and click the "OldCat" category name span to enter edit mode
-    const oldCatSpan = screen.getAllByText('OldCat').find(el => el.tagName === 'SPAN' && el.title === 'Click to rename');
+    const oldCatSpan = screen.getAllByText('OldCat').find(el => el.tagName === 'BUTTON' && el.title === 'Click to rename');
     if (oldCatSpan) {
       await user.click(oldCatSpan);
       const editInput = screen.getByDisplayValue('OldCat');
@@ -1348,7 +1351,7 @@ describe('CollabNotes details', () => {
   it('FE-W5CNT-001: a corrupt category cache in localStorage is ignored', async () => {
     localStorage.setItem('collab-cats-1', '{not json');
     render(<CollabNotes {...defaultProps} />);
-    await screen.findByText('No notes yet');
+    expect(await screen.findByText('No notes yet')).toBeInTheDocument();
   });
 
   it('FE-W5CNT-002: a category without a stored colour falls back to the first palette entry', async () => {
@@ -1369,13 +1372,13 @@ describe('CollabNotes details', () => {
   it('FE-W5CNT-004: notes served as a bare array are rendered', async () => {
     serveNotes([buildNote({ title: 'Array note' })]);
     render(<CollabNotes {...defaultProps} />);
-    await screen.findByText('Array note');
+    expect(await screen.findByText('Array note')).toBeInTheDocument();
   });
 
   it('FE-W5CNT-005: an empty payload yields an empty list', async () => {
     serveNotes(null);
     render(<CollabNotes {...defaultProps} />);
-    await screen.findByText('No notes yet');
+    expect(await screen.findByText('No notes yet')).toBeInTheDocument();
   });
 
   it('FE-W5CNT-006: a failing load falls back to the empty state', async () => {
@@ -1383,7 +1386,7 @@ describe('CollabNotes details', () => {
       http.get('/api/trips/1/collab/notes', () => new HttpResponse(null, { status: 500 })),
     );
     render(<CollabNotes {...defaultProps} />);
-    await screen.findByText('No notes yet');
+    expect(await screen.findByText('No notes yet')).toBeInTheDocument();
   });
 
   it('FE-W5CNT-007: a WebSocket create for a note already in the list does not duplicate it', async () => {
@@ -1434,7 +1437,7 @@ describe('CollabNotes details', () => {
     await user.click(screen.getByText('New Note'));
     await user.type(await screen.findByPlaceholderText('Note title'), 'Fresh note');
     await user.click(screen.getByRole('button', { name: 'Create' }));
-    await screen.findByText('Fresh note');
+    expect(await screen.findByText('Fresh note')).toBeInTheDocument();
   });
 
   it('FE-W5CNT-011: an empty create response leaves the list untouched', async () => {
@@ -1764,10 +1767,13 @@ describe('CollabNotes details', () => {
       if (!img) throw new Error('image attachment not rendered yet');
       return img;
     });
-    fireEvent.mouseEnter(image);
-    expect(image.style.transform).toBe('scale(1.06)');
-    fireEvent.mouseLeave(image);
-    expect(image.style.transform).toBe('scale(1)');
+    // The clickable thumbnail is a real button wrapped around the image, so the
+    // hover transform lands on that button.
+    const imageTile = image.closest('button') as HTMLElement;
+    fireEvent.mouseEnter(imageTile);
+    expect(imageTile.style.transform).toBe('scale(1.06)');
+    fireEvent.mouseLeave(imageTile);
+    expect(imageTile.style.transform).toBe('scale(1)');
     fireEvent.click(image);
     await waitFor(() => expect(screen.queryByText('Download itinerary.zip')).not.toBeInTheDocument());
   });
@@ -1838,7 +1844,7 @@ describe('CollabNotes details', () => {
 
     await user.click(screen.getByTitle('Manage Categories'));
     await screen.findByText('Manage Categories', { selector: 'h3' });
-    const oldCat = screen.getAllByText('OldCat').find(el => el.tagName === 'SPAN' && el.title === 'Click to rename')!;
+    const oldCat = screen.getAllByText('OldCat').find(el => el.tagName === 'BUTTON' && el.title === 'Click to rename')!;
     await user.click(oldCat);
     const editInput = screen.getByDisplayValue('OldCat');
     await user.clear(editInput);
@@ -1891,7 +1897,7 @@ describe('CollabNotes details', () => {
     await user.click(screen.getByTitle('Manage Categories'));
     await screen.findByText('Manage Categories', { selector: 'h3' });
 
-    const oldCat = screen.getAllByText('OldCat').find(el => el.tagName === 'SPAN' && el.title === 'Click to rename')!;
+    const oldCat = screen.getAllByText('OldCat').find(el => el.tagName === 'BUTTON' && el.title === 'Click to rename')!;
     await user.click(oldCat);
     const editInput = screen.getByDisplayValue('OldCat');
     await user.clear(editInput);

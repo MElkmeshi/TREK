@@ -97,8 +97,8 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
     const cleanName = name.trim()
     if (!cleanName) return
     const cleanLinks = links.map(l => ({ label: l.label?.trim() || undefined, url: normalizeLinkUrl(l.url) })).filter(l => l.url)
-    const latNum = lat.trim() ? Number(lat) : NaN
-    const lngNum = lng.trim() ? Number(lng) : NaN
+    const latNum = lat.trim() ? Number(lat) : Number.NaN
+    const lngNum = lng.trim() ? Number(lng) : Number.NaN
     setSaving(true)
     try {
       const res = await collectionsApi.savePlace({
@@ -135,7 +135,10 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
 
   const coordPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     const text = e.clipboardData.getData('text').trim()
-    const match = text.match(/^(-?\d+\.?\d*)\s*[,;\s]\s*(-?\d+\.?\d*)$/)
+    // Same pairs as before, written so no two quantifiers can claim the same
+    // character. In the old form `\d+\.?\d*` and `\s*[,;\s]\s*` were both ambiguous,
+    // which backtracks in O(n^4): a pasted 2 kB of digits and spaces froze the tab.
+    const match = text.match(/^(-?\d+(?:\.\d*)?)(?:\s*[,;]\s*|\s+)(-?\d+(?:\.\d*)?)$/)
     if (match) { e.preventDefault(); setLat(match[1]); setLng(match[2]) }
   }
   const coordInputClass = 'w-full px-3 py-2 rounded-lg border border-edge bg-surface-input text-content text-[14px] outline-none focus:border-accent'

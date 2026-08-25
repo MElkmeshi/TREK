@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { localIsoDate } from '../utils/localDate';
 import { render, screen, waitFor, within } from '../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -535,9 +536,9 @@ describe('DashboardPage', () => {
 
   describe('FE-PAGE-DASH-023: SpotlightCard shows progress bar for ongoing trip', () => {
     it('renders progress bar and live badge when trip is currently ongoing', async () => {
-      const today = new Date().toISOString().split('T')[0];
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-      const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+      const today = localIsoDate();
+      const yesterday = localIsoDate(new Date(Date.now() - 86400000));
+      const nextWeek = localIsoDate(new Date(Date.now() + 7 * 86400000));
 
       const ongoingTrip = buildTrip({
         title: 'Current Voyage',

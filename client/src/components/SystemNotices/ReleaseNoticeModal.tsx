@@ -41,7 +41,7 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
       className="rn-overlay"
       role="presentation"
       style={{ opacity: visible ? 1 : 0, transition: 'opacity 260ms ease' }}
-      onClick={notice.dismissible ? onDismiss : undefined}
+      onClick={notice.dismissible ? e => { if (e.target === e.currentTarget) onDismiss() } : undefined}
     >
       <div
         role="dialog"
@@ -49,7 +49,6 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
         aria-labelledby={titleId}
         aria-describedby={bodyId}
         className="rn-panel"
-        onClick={e => e.stopPropagation()}
       >
         {/* ── Left: the release ─────────────────────────────────────────── */}
         <div className="rn-release">
@@ -130,7 +129,7 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
         {/* ── Right: the note ───────────────────────────────────────────── */}
         <div className="rn-note">
           {notice.dismissible && (
-            <button className="rn-close" onClick={onDismiss} aria-label={t('common.close')}>
+            <button type="button" className="rn-close" onClick={onDismiss} aria-label={t('common.close')}>
               <X size={18} strokeWidth={2} />
             </button>
           )}
@@ -161,7 +160,7 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
             <div className="rn-support-text">{t(release.supportTextKey)}</div>
             <div className="rn-support-buttons">
               {notice.cta && (
-                <button
+                <button type="button"
                   id={`notice-cta-${notice.id}`}
                   className="rn-support-btn rn-support-bmc"
                   onClick={onCTA}
@@ -171,7 +170,7 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
                 </button>
               )}
               {notice.secondaryCta && (
-                <button
+                <button type="button"
                   id={`notice-cta2-${notice.id}`}
                   className="rn-support-btn rn-support-kofi"
                   onClick={onSecondaryCTA}

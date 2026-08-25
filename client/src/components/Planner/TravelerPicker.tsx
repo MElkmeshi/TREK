@@ -9,7 +9,7 @@ import { useTranslation } from '../../i18n'
 // picker, the card and the cost-split chips (mirrors BudgetPanel.helpers).
 function colorFor(userId: number) {
   const n = SPLIT_COLORS.length
-  return SPLIT_COLORS[((((userId | 0) - 1) % n) + n) % n]
+  return SPLIT_COLORS[(((Math.trunc(userId) - 1) % n) + n) % n]
 }
 
 function Avatar({ userId, username, avatarUrl, size = 22, dim = false }: {

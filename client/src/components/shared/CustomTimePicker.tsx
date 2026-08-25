@@ -21,9 +21,11 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
   // The spinner is short, and it has to keep up with a scrolling sheet (#1999).
   const anchored = useAnchoredPosition(ref, open, { estimatedHeight: 120, matchWidth: false })
 
-  const [h, m] = (parseMeridiemTime(value) ?? value ?? '').split(':').map(Number)
-  const hour = isNaN(h) ? null : h
-  const minute = isNaN(m) ? null : m
+  // `m` falls back to NaN because a value with no colon ('' while the field is
+  // empty) splits into a single part, and an absent minute has to read as unset.
+  const [h, m = Number.NaN] = (parseMeridiemTime(value) ?? value ?? '').split(':').map(Number)
+  const hour = Number.isNaN(h) ? null : h
+  const minute = Number.isNaN(m) ? null : m
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -101,16 +103,16 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
     const clean = raw.replace(/[^0-9:]/g, '')
     if (/^\d{1,2}:\d{2}$/.test(clean)) {
       const [hh, mm] = clean.split(':')
-      const h = Math.min(23, Math.max(0, parseInt(hh)))
-      const m = Math.min(59, Math.max(0, parseInt(mm)))
+      const h = Math.min(23, Math.max(0, Number.parseInt(hh)))
+      const m = Math.min(59, Math.max(0, Number.parseInt(mm)))
       onChange(String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'))
     } else if (/^\d{3,4}$/.test(clean)) {
       const s = clean.padStart(4, '0')
-      const h = Math.min(23, Math.max(0, parseInt(s.slice(0, 2))))
-      const m = Math.min(59, Math.max(0, parseInt(s.slice(2))))
+      const h = Math.min(23, Math.max(0, Number.parseInt(s.slice(0, 2))))
+      const m = Math.min(59, Math.max(0, Number.parseInt(s.slice(2))))
       onChange(String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0'))
     } else if (/^\d{1,2}$/.test(clean)) {
-      const h = Math.min(23, Math.max(0, parseInt(clean)))
+      const h = Math.min(23, Math.max(0, Number.parseInt(clean)))
       onChange(String(h).padStart(2, '0') + ':00')
     }
   }

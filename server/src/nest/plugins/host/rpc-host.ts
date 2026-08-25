@@ -1,5 +1,6 @@
 import {
   KNOWN_METHODS,
+  METHOD_PERMISSION,
   type KnownMethod,
   type RpcError,
   type RpcRequest,
@@ -81,7 +82,11 @@ export class PluginRpcHost {
   }
 
   async dispatch(req: RpcRequest, actingUserId?: number): Promise<RpcResponse | RpcError> {
-    const raw = (req.params ?? {}) as Record<string, unknown>;
+    // Anything but an object is treated as no params at all. The envelope comes
+    // off an IPC channel a plugin can write to, and `'_inv' in raw` below throws a
+    // TypeError on a primitive — outside handle()'s try/catch, so it escapes as a
+    // rejection rather than an error envelope.
+    const raw = (typeof req.params === 'object' && req.params !== null ? req.params : {}) as Record<string, unknown>;
     // The supervisor resolves the acting user from `_inv` BEFORE dispatch and passes
     // the request on untouched, so `_inv` is visible to every handler today and is in
     // effect a reserved param name. Strip it here: no handler and no audit reads
@@ -119,7 +124,7 @@ export class PluginRpcHost {
         req.id,
         known ? 'PERMISSION_DENIED' : 'UNKNOWN_METHOD',
         known
-          ? `${req.method} requires a permission "${this.pluginId}" was not granted`
+          ? `${req.method} requires the "${(METHOD_PERMISSION as Record<string, string>)[req.method]}" permission, which was not granted to plugin "${this.pluginId}"`
           : `unknown method ${req.method}`,
       );
     }

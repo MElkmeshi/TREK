@@ -120,7 +120,7 @@ describe('AppearanceSettingsTab – custom accent and sliders', () => {
 
     await user.click(screen.getByText('Teal'));
 
-    await screen.findByText('Appearance rejected', undefined, PERSIST);
+    expect(await screen.findByText('Appearance rejected', undefined, PERSIST)).toBeInTheDocument();
   });
 
   it('FE-COMP-APPEARANCE-011: a failing colour-mode change surfaces the error toast', async () => {
@@ -130,7 +130,7 @@ describe('AppearanceSettingsTab – custom accent and sliders', () => {
 
     await user.click(screen.getByText('Dark'));
 
-    await screen.findByText('Mode rejected');
+    expect(await screen.findByText('Mode rejected')).toBeInTheDocument();
   });
 
   it('FE-COMP-APPEARANCE-012: picking Custom reveals the accent picker', async () => {

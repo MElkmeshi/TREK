@@ -183,7 +183,7 @@ describe('PlaceFormModal', () => {
     const searchBtn = within(searchRow).getByRole('button');
     await user.click(searchBtn);
 
-    await screen.findByText('Eiffel Tower');
+    expect(await screen.findByText('Eiffel Tower')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-PLACEFORM-019: pressing Enter in search input triggers search', async () => {
@@ -201,7 +201,7 @@ describe('PlaceFormModal', () => {
     await user.type(searchInput, 'Eiffel Tower');
     await user.keyboard('{Enter}');
 
-    await screen.findByText('Eiffel Tower');
+    expect(await screen.findByText('Eiffel Tower')).toBeInTheDocument();
   });
 
   it('FE-PLANNER-PLACEFORM-020: clicking a maps result fills the form', async () => {

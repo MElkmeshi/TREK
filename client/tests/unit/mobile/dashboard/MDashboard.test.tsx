@@ -25,10 +25,13 @@ vi.mock('../../../../src/components/Plugins/TripCardBadges', () => ({
   useTripCardBadges: () => (tripId: number) => mocks.badges[tripId] ?? [],
 }));
 
+// Local-calendar date string — NOT toISOString(), which is the UTC date and
+// disagrees with the badge logic's wall-clock classification between local
+// midnight and the UTC rollover (these tests flaked in exactly that window).
 const iso = (offsetDays: number): string => {
   const d = new Date();
   d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().split('T')[0];
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
 function buildTrip(over: Partial<DashboardTrip> = {}): DashboardTrip {

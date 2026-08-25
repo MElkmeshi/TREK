@@ -44,10 +44,10 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
           try {
             const status = await memoriesApi.status(p.id)
             if (status.connected) connected.push({ id: p.id, name: p.name })
-          } catch {}
+          } catch { }
         }
         setAvailableProviders(connected)
-      } catch {}
+      } catch { }
     })()
   }, [])
 
@@ -133,7 +133,7 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
         </span>
         <div className="flex items-center gap-2">
           {availableProviders.map(p => (
-            <button
+            <button type="button"
               key={p.id}
               onClick={() => browseProvider(p.id)}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800"
@@ -152,12 +152,16 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
           {shownPhotos.map((photo, i) => (
             <div
               key={photo.id}
+              role="button"
+              tabIndex={0}
               className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
               onClick={() => onPhotoClick(allPhotos, i)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPhotoClick(allPhotos, i) } }}
             >
-              {photo.media_type === 'video' && !photo.thumbnail_path ? (
-                // Poster-less video (capture failed / unsupported codec): show a
-                // neutral tile rather than a broken 404 thumbnail (#823).
+              {photo.media_type === 'video' &&
+                photo.provider === 'local' &&
+                !photo.thumbnail_path ? (
+                // Poster-less local video: show a neutral tile.
                 <div className="w-full h-full bg-zinc-200 dark:bg-zinc-800" />
               ) : (
                 <img
@@ -176,7 +180,7 @@ export function GalleryView({ entries, gallery, journeyId, userId, trips, onPhot
                 </div>
               )}
               {/* Delete button */}
-              <button
+              <button type="button"
                 onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id) }}
                 className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 backdrop-blur text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
               >

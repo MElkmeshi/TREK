@@ -304,6 +304,17 @@ export class PluginRegistryService {
       screenshotUrl: entry.screenshotUrl ?? (latest ? rawFileUrl(entry.repo, latest.commitSha, 'docs/screenshot.png') : null),
       signed: !!entry.authorPublicKey && !!latest?.signature,
       authorPublicKey: entry.authorPublicKey ?? null,
+      // The version picker's data: every published version with its OWN server-computed
+      // compat verdict. The client has no semver and must never re-derive range logic —
+      // a picker that disagreed with the install gate would offer a version that 400s.
+      versions: entry.versions.map((v) => ({
+        version: v.version,
+        publishedAt: v.publishedAt ?? null,
+        size: v.size ?? null,
+        signed: !!entry.authorPublicKey && !!v.signature,
+        trek: trekRequirementOrNull(v),
+        compatible: hostCompatible(v, normalizedHost()),
+      })),
       ...this.hostCompat(entry),
       manifest,
     };
@@ -509,6 +520,30 @@ export class PluginRegistryService {
   }
 
   /**
+   * Recompute the per-plugin update hold after a successful install/update.
+   *
+   * The hold exists so a DELIBERATE rollback isn't immediately nagged away by the
+   * update banner. It is set only when `explicit` (the admin picked this exact
+   * version) AND a newer TREK-compatible version exists; every other outcome writes
+   * 0, so landing back on the newest compatible version — by any path — releases a
+   * stale hold. An unresolvable registry never sets a hold: refusing to pin on
+   * missing information beats silently muting future updates.
+   */
+  async recomputeUpdateHold(id: string, installedVersion: string, explicit: boolean): Promise<boolean> {
+    let hold = false;
+    if (explicit) {
+      try {
+        const newest = await this.resolveVersion(id);
+        hold = semver.lt(installedVersion, newest.version);
+      } catch {
+        hold = false;
+      }
+    }
+    this.db.prepare('UPDATE plugins SET update_hold = ? WHERE id = ?').run(hold ? 1 : 0, id);
+    return hold;
+  }
+
+  /**
    * Sideload step 1: extract + validate an uploaded archive into a staging dir,
    * WITHOUT touching the live plugin. Returns the manifest id/version + the staged
    * path so the caller can stop a running child before the swap. Same hard guards
@@ -710,17 +745,23 @@ export function assertHostCompatible(range: string | null, id: string): void {
 }
 
 /**
- * How a version's TREK requirement reads in an error/UI string. Each bound is optional —
- * an entry may declare only a ceiling, or (once `trek` is absent too) nothing at all — so
- * this composes whatever bounds exist rather than interpolating a missing one as "null".
+ * A version's declared TREK requirement as a range string, or null when the entry
+ * carries no bounds at all. Each bound is optional — an entry may declare only a
+ * ceiling, or (once `trek` is absent too) nothing — so this composes whatever
+ * bounds exist rather than interpolating a missing one as "null".
  */
-function trekRequirement(v: RegistryVersion): string {
+function trekRequirementOrNull(v: RegistryVersion): string | null {
   if (v.trek) return v.trek;
   const bounds = [
     v.minTrekVersion ? `>=${v.minTrekVersion}` : null,
     v.maxTrekVersion ? `<=${v.maxTrekVersion}` : null,
   ].filter(Boolean);
-  return bounds.length ? bounds.join(' ') : 'any version';
+  return bounds.length ? bounds.join(' ') : null;
+}
+
+/** How a version's TREK requirement reads in an error/UI string. */
+function trekRequirement(v: RegistryVersion): string {
+  return trekRequirementOrNull(v) ?? 'any version';
 }
 
 /**

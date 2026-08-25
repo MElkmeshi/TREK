@@ -144,6 +144,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
       className={embedded
         ? 'w-full h-full min-h-0 flex flex-col overflow-hidden'
         : 'fixed inset-0 z-[9999] flex items-end md:items-center justify-center md:p-5 overscroll-none bg-[rgba(9,9,11,0.75)]'}
+      role="presentation"
       onClick={embedded ? undefined : onClose}
       onTouchMove={e => { if (!embedded && e.target === e.currentTarget) e.preventDefault() }}
     >
@@ -152,6 +153,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
           ? 'bg-white dark:bg-zinc-900 w-full h-full flex flex-col overflow-hidden'
           : 'bg-white dark:bg-zinc-900 rounded-t-2xl md:rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[720px] md:max-w-[960px] w-full max-h-[calc(100dvh-var(--bottom-nav-h)-20px)] md:max-h-[85vh] flex flex-col overflow-hidden'}
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        role="presentation"
         onClick={e => e.stopPropagation()}
       >
 
@@ -160,7 +162,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
           <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">
             {provider === 'immich' ? 'Immich' : provider === 'synologyphotos' ? 'Synology Photos' : provider}
           </h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+          <button type="button" onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
             <X size={16} />
           </button>
         </div>}
@@ -176,7 +178,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
               { id: 'all' as const, label: t('journey.picker.allPhotos'), short: t('common.all') },
               { id: 'album' as const, label: t('journey.picker.albums') },
             ].map(f => (
-              <button
+              <button type="button"
                 key={f.id}
                 onClick={() => setFilter(f.id)}
                 className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
@@ -233,7 +235,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
                 <div className="flex-1"><DatePicker value={customFrom} onChange={setCustomFrom} /></div>
                 <span className="text-zinc-400 text-[12px]">&mdash;</span>
                 <div className="flex-1"><DatePicker value={customTo} onChange={setCustomTo} /></div>
-                <button onClick={handleCustomSearch}
+                <button type="button" onClick={handleCustomSearch}
                   className="px-3 py-1.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[12px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 flex-shrink-0">
                   {t('journey.picker.search')}
                 </button>
@@ -243,7 +245,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
             {filter === 'album' && (
               <div className="flex gap-2 overflow-x-auto flex-1">
                 {albums.map((a: any) => (
-                  <button
+                  <button type="button"
                     key={a.id}
                     onClick={() => { setSelectedAlbum(a.id); setSelectedAlbumPassphrase(a.passphrase); loadAlbumPhotos(a) }}
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap flex-shrink-0 border ${
@@ -265,7 +267,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
         {!embedded && <div className="px-6 py-2.5 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 flex-shrink-0">
           <div className="relative flex items-center gap-2">
             <span className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500">{t('journey.picker.addTo')}</span>
-            <button
+            <button type="button"
               onClick={() => setAddToOpen(!addToOpen)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-[12px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
             >
@@ -274,9 +276,9 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
             </button>
             {addToOpen && (
               <>
-                <div className="fixed inset-0 z-[9]" onClick={() => setAddToOpen(false)} />
+                <div className="fixed inset-0 z-[9]" role="presentation" onClick={() => setAddToOpen(false)} />
                 <div className="absolute left-12 top-full mt-1 z-10 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-lg py-1.5 min-w-[200px] max-h-[240px] overflow-y-auto">
-                  <button
+                  <button type="button"
                     onClick={() => { setTargetEntryId(null); setAddToOpen(false) }}
                     className={`w-full text-left px-3 py-2 text-[12px] flex items-center gap-2 ${
                       !targetEntryId
@@ -291,7 +293,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
                     <div className="h-px bg-zinc-200 dark:bg-zinc-700 my-1" />
                   )}
                   {entries.filter(e => e.type !== 'skeleton' && e.title !== 'Gallery' && e.title !== '[Trip Photos]').map(e => (
-                    <button
+                    <button type="button"
                       key={e.id}
                       onClick={() => { setTargetEntryId(e.id); setAddToOpen(false) }}
                       className={`w-full text-left px-3 py-2 text-[12px] truncate ${
@@ -316,7 +318,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
           if (selectable.length === 0) return null
           return (
             <div className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 flex-shrink-0">
-              <button
+              <button type="button"
                 onClick={() => {
                   if (allSelected) {
                     setSelected(new Map())
@@ -365,10 +367,14 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
                       const isSelected = selected.has(asset.id)
                       const alreadyAdded = existingAssetIds.has(asset.id)
                       return (
-                        <div
+                        <button
+                          type="button"
                           key={asset.id}
+                          disabled={alreadyAdded}
+                          aria-pressed={isSelected}
+                          aria-label={asset.city || group.label}
                           onClick={() => !alreadyAdded && toggleAsset(asset.id)}
-                          className={`relative aspect-square rounded-lg overflow-hidden ${
+                          className={`relative block w-full aspect-square rounded-lg overflow-hidden ${
                             alreadyAdded
                               ? 'opacity-40 cursor-not-allowed'
                               : isSelected
@@ -402,7 +408,7 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
                               <p className="text-[8px] text-white truncate">{asset.city}</p>
                             </div>
                           )}
-                        </div>
+                        </button>
                       )
                     })}
                   </div>
@@ -421,10 +427,10 @@ export function ProviderPicker({ provider, userId, entries, trips, existingAsset
             <span className="leading-[18px]">{t('journey.picker.selected')}</span>
           </span>
           <div className="flex items-center gap-2">
-            <button onClick={onClose} className="px-3.5 py-2 rounded-lg border border-zinc-200 dark:border-zinc-600 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700">
+            <button type="button" onClick={onClose} className="px-3.5 py-2 rounded-lg border border-zinc-200 dark:border-zinc-600 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700">
               {t('common.cancel')}
             </button>
-            <button
+            <button type="button"
               onClick={() => {
                 const groupMap = new Map<string | undefined, { assetIds: string[]; mediaTypes: string[] }>()
                 for (const [assetId, { passphrase, mediaType }] of selected.entries()) {

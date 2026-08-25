@@ -1,4 +1,5 @@
 import { Calendar, ChevronLeft, ChevronRight, Keyboard } from 'lucide-react';
+import { localIsoDate } from '../../utils/localDate';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '../../i18n';
@@ -226,11 +227,11 @@ export function CustomDatePicker({
     if (nums.length !== 3) return;
 
     // nachher:
-    const get = (field: 'day' | 'month' | 'year') => parseInt(nums[order.indexOf(field)]);
+    const get = (field: 'day' | 'month' | 'year') => Number.parseInt(nums[order.indexOf(field)]);
     let d = get('day'),
       m = get('month');
     const y = get('year');
-    if (isNaN(d) || isNaN(m) || isNaN(y)) return;
+    if (Number.isNaN(d) || Number.isNaN(m) || Number.isNaN(y)) return;
 
     // If locale order gives impossible month but valid swap, correct it
     if (m > 12 && d <= 12) {
@@ -688,7 +689,7 @@ export function CustomDateTimePicker({ value, onChange, placeholder, style = {} 
     onChange(d ? `${d}T${timePart || '12:00'}` : '');
   };
   const handleTimeChange = (t: string) => {
-    const d = datePart || new Date().toISOString().split('T')[0];
+    const d = datePart || localIsoDate();
     onChange(t ? `${d}T${t}` : d);
   };
 

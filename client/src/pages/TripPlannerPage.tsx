@@ -130,7 +130,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
               const active = subTab === tab.id
               const Icon = tab.icon
               return (
-                <button key={tab.id} onClick={() => setSubTabPersist(tab.id)}
+                <button type="button" key={tab.id} onClick={() => setSubTabPersist(tab.id)}
                   className={active ? 'bg-surface-card text-content' : 'bg-transparent text-content-muted'}
                   style={{
                     appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
@@ -162,7 +162,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
             return (
               <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 'auto', flexWrap: 'wrap' }}>
                 {packingAbgehakt > 0 && (
-                  <button onClick={() => setClearCheckedSignal(s => s + 1)}
+                  <button type="button" onClick={() => setClearCheckedSignal(s => s + 1)}
                     className={`hidden sm:inline-flex items-center gap-1.5 px-[14px] py-[9px] hover:opacity-[0.88] bg-[rgba(239,68,68,0.14)] text-[#ef4444]`}
                     style={sharedBtnStyle}
                   >
@@ -177,7 +177,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
                   style={sharedBtnStyle}
                 />
                 {isAdmin && packingItems.length > 0 && (
-                  <button onClick={() => setSaveTemplateSignal(s => s + 1)}
+                  <button type="button" onClick={() => setSaveTemplateSignal(s => s + 1)}
                     className={`${sharedBtnClass} bg-accent text-accent-text`}
                     style={sharedBtnStyle}
                   >
@@ -185,7 +185,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
                     <span className="hidden sm:inline">{t('packing.saveAsTemplate')}</span>
                   </button>
                 )}
-                <button onClick={() => setImportPackingSignal(s => s + 1)}
+                <button type="button" onClick={() => setImportPackingSignal(s => s + 1)}
                   className={`${sharedBtnClass} bg-accent text-accent-text`}
                   style={sharedBtnStyle}
                 >
@@ -196,7 +196,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
             )
           })()}
           {subTab === 'todo' && (
-            <button onClick={() => setAddTodoSignal(s => s + 1)}
+            <button type="button" onClick={() => setAddTodoSignal(s => s + 1)}
               className="hover:opacity-[0.88] bg-accent text-accent-text"
               style={{
                 appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
@@ -366,6 +366,10 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               route={route}
               routeVias={routeVias}
               showTransitRoutes={routeShown}
+              // The route toggle belongs to one day, so the map needs that day to
+              // know which automated transports may ride it (#2019).
+              days={days}
+              selectedDayId={selectedDayId}
               routeSegments={routeSegments}
               selectedPlaceId={selectedPlaceId}
               onMarkerClick={handleMarkerClick}
@@ -420,7 +424,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
             )}
 
             <div className="hidden md:block" style={{ position: 'absolute', left: 10, top: 10, bottom: 10, zIndex: 20 }}>
-              <button onClick={() => setLeftCollapsed(c => !c)}
+              <button type="button" onClick={() => setLeftCollapsed(c => !c)}
                 style={{
                   position: leftCollapsed ? 'fixed' : 'absolute', top: leftCollapsed ? 'calc(var(--nav-h) + 44px + 14px)' : 14, left: leftCollapsed ? 10 : undefined, right: leftCollapsed ? undefined : -28, zIndex: -1,
                   width: 36, height: 36, borderRadius: leftCollapsed ? 10 : '0 10px 10px 0',
@@ -498,6 +502,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 />
                 {!leftCollapsed && (
                   <div
+                    role="presentation"
                     onMouseDown={startResizeLeft}
                     style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize', background: 'transparent' }}
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.08)'}
@@ -508,7 +513,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
             </div>
 
             <div className="hidden md:block" style={{ position: 'absolute', right: 10, top: 10, bottom: 10, zIndex: 20 }}>
-              <button onClick={() => setRightCollapsed(c => !c)}
+              <button type="button" onClick={() => setRightCollapsed(c => !c)}
                 style={{
                   position: rightCollapsed ? 'fixed' : 'absolute', top: rightCollapsed ? 'calc(var(--nav-h) + 44px + 14px)' : 14, right: rightCollapsed ? 10 : undefined, left: rightCollapsed ? undefined : -28, zIndex: -1,
                   width: 36, height: 36, borderRadius: rightCollapsed ? 10 : '10px 0 0 10px',
@@ -535,6 +540,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
               }}>
                 {!rightCollapsed && (
                   <div
+                    role="presentation"
                     onMouseDown={startResizeRight}
                     style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize', background: 'transparent' }}
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.08)'}
@@ -567,12 +573,12 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
             {/* Mobile sidebar buttons — portal to body to escape Leaflet touch handling */}
             {activeTab === 'plan' && !mobileSidebarOpen && !showPlaceForm && !showMembersModal && !showReservationModal && createPortal(
               <div className="flex md:hidden" style={{ position: 'fixed', top: 'calc(var(--nav-h) + 44px + 12px)', left: 12, right: 12, justifyContent: 'space-between', zIndex: 100, pointerEvents: 'none' }}>
-                <button onClick={() => setMobileSidebarOpen('left')}
+                <button type="button" onClick={() => setMobileSidebarOpen('left')}
                   className="bg-surface-card text-content border border-edge"
                   style={{ pointerEvents: 'auto', backdropFilter: 'blur(12px)', borderRadius: 24, padding: '11px 24px', fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
                   {t('trip.mobilePlan')}
                 </button>
-                <button onClick={() => setMobileSidebarOpen('right')}
+                <button type="button" onClick={() => setMobileSidebarOpen('right')}
                   className="bg-surface-card text-content border border-edge"
                   style={{ pointerEvents: 'auto', backdropFilter: 'blur(12px)', borderRadius: 24, padding: '11px 24px', fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 12px rgba(0,0,0,0.15)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
                   {t('trip.mobilePlaces')}
@@ -649,8 +655,8 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
             )}
 
             {selectedPlace && isMobile && createPortal(
-              <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 'var(--bottom-nav-h)' }} onClick={() => setSelectedPlaceId(null)}>
-                <div style={{ width: '100%', maxHeight: '85vh' }} onClick={e => e.stopPropagation()}>
+              <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 'var(--bottom-nav-h)' }} role="presentation" onClick={() => setSelectedPlaceId(null)}>
+                <div style={{ width: '100%', maxHeight: '85vh' }} role="presentation" onClick={e => e.stopPropagation()}>
                   <PlaceInspector
                     onEditTransport={openLinkedTransport}
                     onEditReservation={openLinkedReservation}
@@ -694,11 +700,11 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
             )}
 
             {mobileSidebarOpen && createPortal(
-              <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999 }} onClick={() => setMobileSidebarOpen(null)}>
-                <div className="bg-surface-card" style={{ position: 'absolute', top: 'var(--nav-h)', left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+              <div className="bg-[rgba(0,0,0,0.3)]" style={{ position: 'fixed', inset: 0, zIndex: 9999 }} role="presentation" onClick={() => setMobileSidebarOpen(null)}>
+                <div className="bg-surface-card" style={{ position: 'absolute', top: 'var(--nav-h)', left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} role="presentation" onClick={e => e.stopPropagation()}>
                   <div className="border-b border-edge-secondary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px' }}>
                     <span className="text-content" style={{ fontWeight: 600, fontSize: 'calc(14px * var(--fs-scale-body, 1))' }}>{mobileSidebarOpen === 'left' ? t('trip.mobilePlan') : t('trip.mobilePlaces')}</span>
-                    <button onClick={() => setMobileSidebarOpen(null)} className="bg-surface-tertiary text-content" style={{ border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <button type="button" onClick={() => setMobileSidebarOpen(null)} className="bg-surface-tertiary text-content" style={{ border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <X size={14} />
                     </button>
                   </div>

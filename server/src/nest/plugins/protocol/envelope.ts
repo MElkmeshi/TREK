@@ -7,6 +7,14 @@
  * or the websocket server. Keep it dependency-free.
  */
 
+/**
+ * The plugin-API surface version (#plugins, M4) — bumped on any breaking change to the
+ * ctx methods / manifest shape a plugin author can rely on. Mirrored into every
+ * manifest as `apiVersion`; the install and activation gates refuse a plugin declaring
+ * a version newer than this one.
+ */
+export const PLUGIN_API_VERSION = 1;
+
 export type PluginErrCode =
   | 'PERMISSION_DENIED' // a real method the plugin was not granted
   | 'UNKNOWN_METHOD' // not a method the host exposes at all
@@ -202,6 +210,10 @@ export const METHOD_PERMISSION = {
   'packing.create': 'db:write:packing',
   'packing.update': 'db:write:packing',
   'packing.delete': 'db:write:packing',
+  // Intentional: bags are the write-side organizational structure of packing —
+  // a read-only consumer uses packing.list; only bag-managing (write) plugins
+  // need the bag tree. Moving this to db:read:packing would strip access from
+  // every installed write-only plugin and force consent re-prompts.
   'packing.listBags': 'db:write:packing',
   'packing.createBag': 'db:write:packing',
   'packing.updateBag': 'db:write:packing',

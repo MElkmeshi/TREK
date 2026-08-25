@@ -1,4 +1,5 @@
 import { readEnv, getAppUrl } from '../../app-config';
+import { stripHtmlTags } from '../common/stripHtmlTags';
 
 /**
  * Pure maps/geo helpers — no DB, no Nest, no side effects beyond reading env.
@@ -328,10 +329,10 @@ function osmPeriods(dayIdx: number, timePart: string): OpeningPeriod[] {
   const day = (dayIdx + 1) % 7;
   const periods: OpeningPeriod[] = [];
   for (const match of timePart.matchAll(OSM_TIME_RANGE)) {
-    const openHour = parseInt(match[1], 10);
-    const openMinute = parseInt(match[2], 10);
-    let closeHour = parseInt(match[3], 10);
-    const closeMinute = parseInt(match[4], 10);
+    const openHour = Number.parseInt(match[1], 10);
+    const openMinute = Number.parseInt(match[2], 10);
+    let closeHour = Number.parseInt(match[3], 10);
+    const closeMinute = Number.parseInt(match[4], 10);
     if (openHour > 23 || openMinute > 59 || closeHour > 24 || closeMinute > 59) continue;
     // OSM writes the end of a day as 24:00, a clock reading Google's numbering has no
     // hour 24 — that is midnight of the following day, same as any range that wraps.
@@ -378,8 +379,12 @@ export function parseOpeningHours(ohString: string): {
   for (const segment of ohString.split(';')) {
     const trimmed = segment.trim();
     if (!trimmed) continue;
+    // The time part is `\S.*`, not `.+`: the segment was trimmed above, so both
+    // spell "everything after the gap". But `\s+(.+)` lets the gap and the time
+    // part fight over the same spaces, and a segment that is a weekday followed by
+    // nothing but blanks then costs a pass per space.
     const match = trimmed.match(
-      /^((?:Mo|Tu|We|Th|Fr|Sa|Su)(?:\s*-\s*(?:Mo|Tu|We|Th|Fr|Sa|Su))?(?:\s*,\s*(?:Mo|Tu|We|Th|Fr|Sa|Su)(?:\s*-\s*(?:Mo|Tu|We|Th|Fr|Sa|Su))?)*)\s+(.+)$/i,
+      /^((?:Mo|Tu|We|Th|Fr|Sa|Su)(?:\s*-\s*(?:Mo|Tu|We|Th|Fr|Sa|Su))?(?:\s*,\s*(?:Mo|Tu|We|Th|Fr|Sa|Su)(?:\s*-\s*(?:Mo|Tu|We|Th|Fr|Sa|Su))?)*)\s+(\S.*)$/i,
     );
     if (!match) continue;
     const [, daysPart, timePart] = match;
@@ -421,8 +426,8 @@ export function parseOpeningHours(ohString: string): {
     if (timeRanges.length > 0) {
       const nowMins = now.getHours() * 60 + now.getMinutes();
       openNow = timeRanges.some((m) => {
-        const start = parseInt(m[1]) * 60 + parseInt(m[2]);
-        const end = parseInt(m[3]) * 60 + parseInt(m[4]);
+        const start = Number.parseInt(m[1]) * 60 + Number.parseInt(m[2]);
+        const end = Number.parseInt(m[3]) * 60 + Number.parseInt(m[4]);
         return end > start ? nowMins >= start && nowMins < end : nowMins >= start || nowMins < end;
       });
     }
@@ -489,9 +494,8 @@ export function buildOsmDetails(tags: Record<string, string>, osmType: string, o
  */
 export function stripWikiMarkup(value: string | undefined | null): string | null {
   if (!value) return null;
-  const text = value
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
+  const text = stripHtmlTags(value, ' ')
+    .replaceAll('&nbsp;', ' ')
     .replace(/\s+/g, ' ')
     .trim();
   return text || null;
@@ -572,7 +576,10 @@ function seriesStem(title: string): string {
     // 20260614 100717648 HDR — a camera dump, all from the same minute
     .replace(/\b\d{8}[ _-]\d{6,9}\b/g, ' ')
     .replace(/\b(19|20)\d{2}\b/g, ' ')
-    .replace(/[ _-]+\(?\d{1,4}\)?$/g, '')
+    // The character in front of the suffix is matched and put straight back:
+    // /[ _-]+…$/ on its own restarts at every space of a title that has no such
+    // suffix, and re-reads the rest of the run each time.
+    .replace(/([^ _-]|^)[ _-]+\(?\d{1,4}\)?$/g, '$1')
     .replace(/[^a-z]+/g, ' ')
     .trim();
 }

@@ -35,6 +35,28 @@ body { height: 100%; overflow: auto; overscroll-behavior: none; -webkit-overflow
 .journey-feed-scroll { scrollbar-width: none; -ms-overflow-style: none; }
 .journey-feed-scroll::-webkit-scrollbar { display: none; }
 
+/* Journey video: let the player fill the box the lightbox gives it.
+ *
+ * Plyr sizes its wrapper from the video's intrinsic aspect ratio via a
+ * padding-bottom hack, which fights a fixed-height container — a portrait clip
+ * then overflowed and pushed its own controls out of reach (#2041). Pinning the
+ * wrapper to the box and letting the video letterbox inside it keeps any aspect
+ * ratio whole and the control bar on screen. */
+.trek-video-player .plyr,
+.trek-video-player .plyr__video-wrapper {
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+.trek-video-player .plyr__video-wrapper {
+  padding-bottom: 0 !important;
+}
+.trek-video-player video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
 /* Leaflet Popups — Enter-Animation vom Anchor-Tip */
 .leaflet-popup {
   animation: trek-popover-enter 220ms cubic-bezier(0.23, 1, 0.32, 1);

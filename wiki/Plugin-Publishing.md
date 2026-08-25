@@ -29,8 +29,20 @@ The order is the point. A GitHub release is effectively immutable: the registry 
 its sha256, so overwriting the bytes breaks the checksum for everyone who already
 installed that version. So the local gates run **first** — if one fails, nothing is
 packed, tagged, pushed or released, and you can fix it and re-run against the same
-version. (Before this, the checks ran *after* the release was cut, and an author who
-failed them had burned their `v1.0.0` tag on an unwritten README.)
+version.
+
+And when a **later** step fails — a preflight or PR problem after the release is
+cut — `publish` rolls back exactly what that run created: the GitHub release, the
+pushed tag, and the local tag, so the same tag is free to re-run against once you
+have fixed the problem. Anything that existed before the run is never touched, and
+`--keep-release` opts out (the error then prints the manual cleanup commands). A
+leftover tag from an earlier failed run — one with no release that no longer points
+at `HEAD` — is recognised as debris and **moved to your current commit** rather than
+silently releasing the stale one. And for a stranded state you already have,
+`trek-plugin unrelease <vX.Y.Z> --repo you/repo` deletes the release, the remote
+tag, and the local tag in one go — after checking the published registry index and
+**refusing, with no override, to touch a version that is actually published** (its
+artifact is immutable; ship a new version instead).
 
 It prints the PR URL at the end. In a terminal it **offers to sign** the release (and
 creates the key if you have none); scripts and CI are never prompted and pass `--sign`.
@@ -90,12 +102,17 @@ Between them they now catch, **offline**, nearly everything the registry rejects
 - an `egress[]` host with no matching `http:outbound:<host>` permission — TREK builds
   the network allow-list and the iframe CSP from those permissions only and never reads
   `egress[]`, so such a host is silently unreachable at runtime
+- a permission TREK doesn't know — the SDK and registry CI check against the same
+  63-entry list the host enforces, so a typo'd permission fails here instead of at
+  install on every instance
 
-Only **four** gates genuinely need the network, and they all need the release to exist:
-that the tag resolves to the commit the entry pins, that the released artifact downloads
-and hashes to the pinned sha256 (and verifies against your key), that your plugin id
-isn't bound to another GitHub owner, and that an update doesn't drop or rotate a signing
-key you already published under. Those run in `preflight` — step 4 of `publish`.
+Only **six** gates genuinely need the network, because none of them can be answered from
+your working tree: that the tag resolves to the commit the entry pins, that the manifest at
+that commit matches the entry, that the README at that commit still passes the quality gate,
+that the released artifact downloads and hashes to the pinned sha256 (and verifies against
+your key), that your plugin id isn't bound to another GitHub owner, and that an update
+doesn't drop or rotate a signing key you already published under. Those run in `preflight`
+— step 4 of `publish`.
 
 ### Capture the screenshot
 
@@ -196,9 +213,9 @@ release, so you catch what CI would reject without a review round-trip:
 npx trek-plugin-sdk preflight --repo you/trek-plugin-flight-tracker --tag v1.0.0
 ```
 
-`preflight` runs everything `validate` runs, plus the four gates that genuinely need
-the network: the tag resolves to the pinned `commitSha`; the manifest **and the
-README** at that commit match the entry and pass the quality gate; the released
+`preflight` runs everything `validate` runs, plus the six gates that genuinely need
+the network: the tag resolves to the pinned `commitSha`; the **manifest** at that commit
+matches the entry; the **README** at that commit passes the quality gate; the released
 artifact downloads, hashes to the pinned **sha256**, carries **no native binaries** and
 verifies against your key; your plugin id is not bound to a different GitHub owner; and
 an update does not drop or rotate a signing key you already published under.
@@ -218,7 +235,9 @@ npx trek-plugin-sdk submit --repo you/trek-plugin-flight-tracker --tag v1.0.0
 ```
 
 It forks [TREK-Plugins](https://github.com/liketrek/TREK-Plugins) (once),
-branches off the current `main`, writes (or, for an update, merges into)
+**fast-forwards your fork from the registry** (a diverged fork warns with the
+`gh repo sync --force` command to reset it, and the submit continues), branches off
+the registry's current `main`, writes (or, for an update, merges into)
 `registry/plugins/<id>.json`, pushes, and opens the PR — printing its URL. Add
 `--draft` for a draft PR, `--registry <owner/name>` for a mirror. (Requires `gh`,
 authenticated.)
@@ -244,16 +263,19 @@ changed `registry/plugins/*.json`. Nearly every rule below is a pure function of
 you have tagged anything — you should never learn any of this from CI.
 
 **Entry** (`validate-entry.mjs`): valid schema · `id` matches the filename and
-the slug pattern `^[a-z][a-z0-9-]{2,39}$` · your `id` is bound to your GitHub
+the slug pattern `^[a-z][a-z0-9-]{2,39}$` and is not one of the reserved ids
+`registry`/`install`/`rescan` (they collide with admin API route segments — CI and
+the install loader both refuse them) · your `id` is bound to your GitHub
 owner on first registration, so nobody can repoint it later (owner changes need a
-maintainer override) · homoglyph/mixed-script name check · the release tag exists
+maintainer override) · homoglyph/mixed-script name check · `versions[]` sorted
+newest-first · the release tag exists
 and resolves to `commitSha` · manifest parity at that commit (`id`, `version`,
-`type`, `apiVersion`, and `nativeModules` must not be `true`) · **the downloaded
+`type`, `apiVersion`, and `nativeModules` must not be `true`) · every declared
+permission is on TREK's known-permission list (or a valid `http:outbound:<host>`) ·
+**the downloaded
 artifact's SHA-256 matches the pin** and its size is within bounds · **no native
 binaries** in the archive · `egress[]` present (and no bare `*`) when
-`http:outbound` is declared. Any unique slug is fine **except `registry`,
-`install` and `rescan`**, which the install loader refuses (they collide with
-admin API route segments).
+`http:outbound` is declared.
 
 **README** (`check-readme.mjs`, fetched at the pinned commit): must exist at the
 repo root, contain the sections **What it does / Screenshots / Permissions /
@@ -330,7 +352,12 @@ next to its `sha256`:
 Signing is **opt-in**, and it is a one-way door you may walk through **late**. An
 entry without `authorPublicKey`/`signature` installs on `sha256` alone; **going
 unsigned → signed later breaks nobody**, because nothing is pinned until a signed
-version installs — adding a key at v1.4.0 is a real option, not a lost cause. What
+version installs — adding a key at v1.4.0 is a real option, not a lost cause. The
+registry does require every version signed once your key appears in the entry, and
+the SDK handles that for you: your first signed update **retro-signs the older
+versions** (each pinned artifact is downloaded, verified against its `sha256`, and
+signed with the same key — a byte mismatch refuses, since that artifact no longer
+matches its pin). What
 you can never do is go back: once a plugin has shipped signed, an *unsigned* update
 is refused (`SIGNATURE_MISSING`) on every instance that already has it, and a key
 *rotation* needs a registry maintainer override (`allow-key-change`) plus an admin

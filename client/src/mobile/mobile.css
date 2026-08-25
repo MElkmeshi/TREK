@@ -327,3 +327,39 @@
   /* Zzz would sit invisible at opacity 0 without their animation — pin them visible */
   .trek-z { opacity: 1; }
 }
+
+/* Map attribution clears the dock.
+ *
+ * Both engines park their attribution at the bottom of the map, and on a phone
+ * the map is the whole screen — so the credit line lands under the floating nav
+ * and reads as a broken bar (#2022's screenshots show it over the dock). Lift it
+ * by the same variable everything else clears the dock with. Leaflet and
+ * MapLibre both, because a phone meets either depending on the screen. */
+.m-root .leaflet-control-attribution,
+.m-root .maplibregl-ctrl-bottom-left,
+.m-root .maplibregl-ctrl-bottom-right {
+  bottom: var(--bottom-nav-h);
+}
+
+/* Text fields carry the row's background, not their own.
+ *
+ * iOS paints its own background inside a text control, and under
+ * `color-scheme: dark` that fill is darker than the card the field sits on —
+ * so every field showed as a dark rectangle inside a lighter row (#2028). The
+ * mobile fields are deliberately `bg-transparent` because the row around them
+ * supplies the surface, which is exactly why the native fill has nothing
+ * covering it here and shows through; a desktop field hides it behind its own
+ * background. Dropping the native appearance is what actually removes it.
+ *
+ * Only text entry. `file`, `color`, `range` and the date/time pickers need
+ * their native chrome to stay usable, and `select` keeps its own arrow. */
+.m-root input:not([type]),
+.m-root input[type="text"],
+.m-root input[type="password"],
+.m-root input[type="email"],
+.m-root input[type="url"],
+.m-root input[type="search"],
+.m-root textarea {
+  -webkit-appearance: none;
+  appearance: none;
+}

@@ -223,7 +223,7 @@ export default function LoginPage(): React.ReactElement {
     <div style={{ minHeight: '100vh', display: 'flex', fontFamily: 'var(--font-system)', position: 'relative' }}>
       {/* Language dropdown */}
       <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
-        <button
+        <button type="button"
           onClick={(e) => {
             e.stopPropagation();
             setLangDropdownOpen((o) => !o);
@@ -265,7 +265,12 @@ export default function LoginPage(): React.ReactElement {
           <div
             role="listbox"
             aria-label="Select language"
+            tabIndex={-1}
+            /* Both handlers do the one job: keep the event from reaching the
+               document listener that closes the dropdown. The options below are
+               real buttons and carry the keyboard interaction themselves. */
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
             style={{
               position: 'absolute',
               top: '100%',
@@ -281,7 +286,7 @@ export default function LoginPage(): React.ReactElement {
             }}
           >
             {SUPPORTED_LANGUAGES.map(({ value, label }) => (
-              <button
+              <button type="button"
                 key={value}
                 role="option"
                 aria-selected={value === language}
@@ -934,7 +939,13 @@ export default function LoginPage(): React.ReactElement {
                               onToggle={() => setRememberMe(!rememberMe)}
                               label={t('login.rememberMe')}
                             />
+                            {/* The visible caption repeats the switch's own aria-label and
+                                clicking it is a mouse shortcut for hitting the switch.
+                                Hidden from assistive tech so it does not read out as a
+                                second "Remember me" control: the switch above is the one
+                                that carries the name, the focus and the keyboard. */}
                             <span
+                              aria-hidden="true"
                               onClick={() => setRememberMe(!rememberMe)}
                               style={{
                                 cursor: 'pointer',
@@ -1049,7 +1060,7 @@ export default function LoginPage(): React.ReactElement {
                     }}
                   >
                     {mode === 'login' ? t('login.noAccount') + ' ' : t('login.hasAccount') + ' '}
-                    <button
+                    <button type="button"
                       onClick={() => {
                         setMode((m) => (m === 'login' ? 'register' : 'login'));
                         setError('');
@@ -1185,7 +1196,7 @@ export default function LoginPage(): React.ReactElement {
 
           {/* Demo login button */}
           {appConfig?.demo_mode && (
-            <button
+            <button type="button"
               onClick={handleDemoLogin}
               disabled={isLoading}
               style={{

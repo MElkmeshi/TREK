@@ -51,11 +51,15 @@ export default function ConfirmDialog({
 
   return createPortal(
     <div
+      // Backdrop only — Escape (above) and the Cancel button below are the
+      // keyboard routes out of the dialog.
+      role="presentation"
       className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter bg-[rgba(15,23,42,0.5)]"
       style={{ paddingBottom: 'var(--bottom-nav-h)' }}
       onClick={onClose}
     >
       <div
+        role="presentation"
         className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm p-6 bg-surface-card"
         onClick={e => e.stopPropagation()}
       >
@@ -76,13 +80,13 @@ export default function ConfirmDialog({
         </div>
 
         <div className="flex justify-end gap-3 mt-6">
-          <button
+          <button type="button"
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium rounded-lg transition-colors text-content-secondary border border-edge-secondary"
           >
             {cancelLabel || t('common.cancel')}
           </button>
-          <button
+          <button type="button"
             onClick={() => { runConfirm(onConfirm); onClose() }}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors text-white ${
               danger ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
