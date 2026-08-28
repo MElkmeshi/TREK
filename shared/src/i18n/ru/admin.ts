@@ -515,6 +515,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Карта мира с посещёнными странами и статистикой путешествий',
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': 'Заметки в реальном времени, опросы и чат для планирования поездок',
+  'admin.addons.catalog.roadtrip.name': 'Автопутешествие',
+  'admin.addons.catalog.roadtrip.description': 'Планируйте поездки с остановками: время в пути и прибытия пересчитывается автоматически',
   'admin.addons.subtitleBefore': 'Включайте или отключайте функции для настройки ',
   'admin.addons.subtitleAfter': ' под себя.',
   'admin.addons.enabled': 'Включено',

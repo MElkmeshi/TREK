@@ -505,6 +505,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Mapa mundial com países visitados e estatísticas',
   'admin.addons.catalog.collab.name': 'Colab',
   'admin.addons.catalog.collab.description': 'Notas, enquetes e chat em tempo real para planejar a viagem',
+  'admin.addons.catalog.roadtrip.name': 'Viagem de carro',
+  'admin.addons.catalog.roadtrip.description': 'Planeje trajetos com paradas; tempos de direção e horários de chegada se recalculam sozinhos',
   'admin.addons.catalog.mcp.name': 'MCP',
   'admin.addons.catalog.mcp.description': 'Model Context Protocol para integração com assistentes de IA',
   'admin.addons.subtitleBefore': 'Ative ou desative recursos para personalizar sua ',

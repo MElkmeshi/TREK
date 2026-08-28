@@ -503,6 +503,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Mapa světa s navštívenými zeměmi a statistikami',
   'admin.addons.catalog.collab.name': 'Spolupráce',
   'admin.addons.catalog.collab.description': 'Poznámky v reálném čase, hlasování a chat pro plánování',
+  'admin.addons.catalog.roadtrip.name': 'Cesta autem',
+  'admin.addons.catalog.roadtrip.description': 'Plánujte jízdy se zastávkami – doby jízdy a časy příjezdu se přepočítají samy',
   'admin.addons.enabled': 'Povoleno',
   'admin.addons.disabled': 'Zakázáno',
   'admin.addons.type.trip': 'Cesta',

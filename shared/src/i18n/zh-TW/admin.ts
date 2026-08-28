@@ -508,6 +508,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': '標記已訪問國家和旅行統計的世界地圖',
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description': '旅行規劃的即時筆記、投票和聊天',
+  'admin.addons.catalog.roadtrip.name': '公路旅行',
+  'admin.addons.catalog.roadtrip.description': '規劃含停靠點的駕駛行程，駕駛時間與抵達時間會自動重算',
   'admin.addons.subtitleBefore': '啟用或停用功能以自定義你的 ',
   'admin.addons.subtitleAfter': ' 體驗。',
   'admin.addons.enabled': '已啟用',

@@ -515,6 +515,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Világtérkép meglátogatott országokkal és utazási statisztikákkal',
   'admin.addons.catalog.collab.name': 'Együttműködés',
   'admin.addons.catalog.collab.description': 'Valós idejű jegyzetek, szavazások és csevegés az utazás tervezéséhez',
+  'admin.addons.catalog.roadtrip.name': 'Autós út',
+  'admin.addons.catalog.roadtrip.description': 'Tervezz megállókkal tarkított utakat – a vezetési és érkezési idők maguktól újraszámolódnak',
   'admin.addons.catalog.memories.name': 'Fotók (Immich)',
   'admin.addons.catalog.memories.description': 'Utazási fotók megosztása az Immich példányon keresztül',
   'admin.addons.catalog.mcp.name': 'MCP',

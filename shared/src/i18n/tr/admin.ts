@@ -554,6 +554,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.atlas.description': 'Ziyaret edilen ülkeleri ve seyahat istatistiklerini içeren dünya haritası',
   'admin.addons.catalog.collab.name': 'İş birliği',
   'admin.addons.catalog.collab.description': 'Seyahat planlaması için gerçek zamanlı notlar, anketler ve sohbet',
+  'admin.addons.catalog.roadtrip.name': 'Yol gezisi',
+  'admin.addons.catalog.roadtrip.description': 'Duraklı sürüşler planlayın; sürüş ve varış saatleri kendiliğinden yeniden hesaplanır',
   'admin.addons.catalog.memories.name': 'Fotoğraflar (Immich)',
   'admin.addons.catalog.memories.description': 'Immich örneğiniz aracılığıyla gezi fotoğraflarını paylaşın',
   'admin.addons.catalog.mcp.name': 'MCP',

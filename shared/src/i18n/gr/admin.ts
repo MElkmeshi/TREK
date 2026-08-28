@@ -566,6 +566,8 @@ const admin: TranslationStrings = {
   'admin.addons.catalog.collab.name': 'Collab',
   'admin.addons.catalog.collab.description':
     'Σημειώσεις, δημοσκοπήσεις και συνομιλία πραγματικού χρόνου για σχεδιασμό ταξιδιού',
+  'admin.addons.catalog.roadtrip.name': 'Οδικό ταξίδι',
+  'admin.addons.catalog.roadtrip.description': 'Σχεδιάστε διαδρομές με στάσεις — οι χρόνοι οδήγησης και άφιξης υπολογίζονται ξανά αυτόματα',
   'admin.addons.catalog.memories.name': 'Φωτογραφίες (Immich)',
   'admin.addons.catalog.memories.description':
     'Μοιραστείτε φωτογραφίες ταξιδιού μέσω της δικής σας εγκατάστασης Immich',
