@@ -20,6 +20,7 @@ import {
   normalizeStyleForProvider,
   type GlMapProvider,
 } from '../Map/glProviders'
+import { ESRI_GRAY_DARK, ESRI_GRAY_LIGHT } from '../../constants/mapDefaults'
 import { useAuthStore } from '../../store/authStore'
 
 interface MapPreset {
@@ -33,6 +34,10 @@ const MAP_PRESETS: MapPreset[] = [
   { name: 'CartoDB Light', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' },
   { name: 'CartoDB Dark', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' },
   { name: 'Stadia Smooth', url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png' },
+  // Keyless, and on the same host the satellite layer already uses. No place
+  // names: Esri serves those as a separate overlay a single tile url cannot carry.
+  { name: 'Esri Light Gray', url: ESRI_GRAY_LIGHT },
+  { name: 'Esri Dark Gray', url: ESRI_GRAY_DARK },
 ]
 
 // Tag → chip color mapping. Keeps the dropdown readable at a glance so a
