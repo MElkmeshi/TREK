@@ -233,7 +233,9 @@ export function deriveIntegrations(raw: RawEnv) {
     unsplashAccessKey: raw.UNSPLASH_ACCESS_KEY?.trim(),
     transitApiBase: stripTrailingSlashes(raw.TRANSIT_API_URL || 'https://api.transitous.org'),
     overpassUrl: raw.OVERPASS_URL,
-    overpassTimeoutMs: positiveNumberOr(raw.OVERPASS_TIMEOUT_MS, 12000),
+    // Longer than the `[timeout:20]` the query itself carries, or we abort an answer the
+    // mirror was still allowed to be working on. See OVERPASS_QUERY_TIMEOUT_S.
+    overpassTimeoutMs: positiveNumberOr(raw.OVERPASS_TIMEOUT_MS, 25000),
     kitineraryExtractorPath: raw.KITINERARY_EXTRACTOR_PATH,
     // Windows spells it Path; every other platform PATH. Split here so callers
     // get a list and never re-implement the delimiter.
