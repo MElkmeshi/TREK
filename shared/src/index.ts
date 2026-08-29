@@ -35,6 +35,7 @@ export * from './day/day.schema';
 export * from './day/note-colors';
 export * from './assignment/assignment.schema';
 export * from './place/place.schema';
+export * from './roadtrip/roadtrip.schema';
 export * from './place/track-colors';
 export * from './collection/collection.schema';
 export * from './trip/trip.schema';
