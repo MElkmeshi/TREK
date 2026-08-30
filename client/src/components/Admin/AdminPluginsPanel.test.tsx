@@ -281,6 +281,10 @@ describe('AdminPluginsPanel — a refused update', () => {
     expect(await screen.findByText(/key it was installed with/i)).toBeInTheDocument()
     expect(screen.getByText(/key it is offering now/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /trust the new key/i })).toBeInTheDocument()
+    // The dialog body scrolls; the decision buttons sit outside it, so they never leave the viewport (#2159).
+    const body = screen.getByText(/key it is offering now/i).closest('.overflow-y-auto')
+    expect(body).not.toBeNull()
+    expect(body).not.toContainElement(screen.getByRole('button', { name: /trust the new key/i }))
   })
 
   // D2, at the UI. An invalid signature means the bytes are not what the author signed.
@@ -947,7 +951,11 @@ describe('AdminPluginsPanel — enabling a plugin', () => {
     await screen.findByText('Gotify')
 
     fireEvent.click(rowToggle('Gotify'))
-    fireEvent.click(await screen.findByRole('button', { name: /^cancel$/i }))
+    // The dependency list scrolls; Cancel sits outside it, so it never leaves the viewport (#2159).
+    const body = (await screen.findByText('trek-core')).closest('.overflow-y-auto')
+    expect(body).not.toBeNull()
+    expect(body).not.toContainElement(screen.getByRole('button', { name: /^cancel$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }))
 
     await waitFor(() => expect(screen.queryByText('Missing dependencies')).not.toBeInTheDocument())
     expect(installs).toBe(0)
@@ -967,6 +975,11 @@ describe('AdminPluginsPanel — enabling a plugin', () => {
     // An unknown permission is still shown — as its raw code
     expect(screen.getByText('weird:perm')).toBeInTheDocument()
     expect(screen.getByText('api.acme.io')).toBeInTheDocument()
+    // A long permission list scrolls inside the dialog; the decision buttons sit outside
+    // the scroll container, so they never leave the viewport (#2159).
+    const body = screen.getByText('Read trips the acting user can access').closest('.overflow-y-auto')
+    expect(body).not.toBeNull()
+    expect(body).not.toContainElement(screen.getByRole('button', { name: /keep off for now/i }))
 
     fireEvent.click(screen.getByRole('button', { name: /keep off for now/i }))
     expect(await screen.findByText(/left off until you approve/i)).toBeInTheDocument()

@@ -1784,7 +1784,7 @@ function SignatureBlockSheet({ data, entry, busy, t, onRetrust, onClose }: {
 
   return (
     <MSheet open onClose={onClose} variant="card" material="opaque" ariaLabel={t('admin.plugins.sig.title', { name: data.subject.name })}>
-      <div className="p-[18px]">
+      <div className="flex-none px-[18px] pt-[18px]">
         <div className="flex items-start gap-3">
           <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${CHIP_PENDING}`}><ShieldAlert size={18} /></div>
           <div>
@@ -1792,30 +1792,30 @@ function SignatureBlockSheet({ data, entry, busy, t, onRetrust, onClose }: {
             <p className="mt-1 text-xs text-m-muted">{t(bodyKey as never)}</p>
           </div>
         </div>
-        <div className="mt-4 space-y-4">
-          {/* Fingerprints, not full keys: these exist to be COMPARED by a human — read the
-              new one back to the author over the phone. The full key travels in the request. */}
-          {canRetrust && (
-            <div className="space-y-2">
-              <KeyRow label={t('admin.plugins.sig.pinnedKey')} value={data.subject.keyFingerprint ?? '—'} />
-              <KeyRow label={t('admin.plugins.sig.newKey')} value={fingerprint(newKey) ?? '—'} highlight />
-              <p className="pt-1 text-[11.5px] leading-relaxed text-m-muted">{t('admin.plugins.sig.confirmOutOfBand')}</p>
-            </div>
-          )}
-          {!canRetrust && data.detail && (
-            <p className="break-all rounded-lg bg-[color:var(--m-ic)] px-3 py-2 font-mono text-xs text-m-faint">{data.detail}</p>
-          )}
-        </div>
-        <div className="mt-5 flex items-center justify-end gap-2">
-          <MAdminButton variant="ghost" onClick={onClose}>
-            {offerRetrust ? t('admin.plugins.sig.cancel') : t('common.close')}
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] py-4 space-y-4">
+        {/* Fingerprints, not full keys: these exist to be COMPARED by a human — read the
+            new one back to the author over the phone. The full key travels in the request. */}
+        {canRetrust && (
+          <div className="space-y-2">
+            <KeyRow label={t('admin.plugins.sig.pinnedKey')} value={data.subject.keyFingerprint ?? '—'} />
+            <KeyRow label={t('admin.plugins.sig.newKey')} value={fingerprint(newKey) ?? '—'} highlight />
+            <p className="pt-1 text-[11.5px] leading-relaxed text-m-muted">{t('admin.plugins.sig.confirmOutOfBand')}</p>
+          </div>
+        )}
+        {!canRetrust && data.detail && (
+          <p className="break-all rounded-lg bg-[color:var(--m-ic)] px-3 py-2 font-mono text-xs text-m-faint">{data.detail}</p>
+        )}
+      </div>
+      <div className="flex-none px-[18px] pb-[18px] flex items-center justify-end gap-2">
+        <MAdminButton variant="ghost" onClick={onClose}>
+          {offerRetrust ? t('admin.plugins.sig.cancel') : t('common.close')}
+        </MAdminButton>
+        {offerRetrust && (
+          <MAdminButton variant="danger" busy={busy} onClick={() => onRetrust(version, newKey)}>
+            {t('admin.plugins.sig.retrustConfirm')}
           </MAdminButton>
-          {offerRetrust && (
-            <MAdminButton variant="danger" busy={busy} onClick={() => onRetrust(version, newKey)}>
-              {t('admin.plugins.sig.retrustConfirm')}
-            </MAdminButton>
-          )}
-        </div>
+        )}
       </div>
     </MSheet>
   )
@@ -1846,7 +1846,7 @@ function UpdateConsentSheet({ data, unsigned, t, onApprove, onLater }: {
 }) {
   return (
     <MSheet open onClose={onLater} variant="card" material="opaque" ariaLabel={t('admin.plugins.updateConsentTitle')}>
-      <div className="p-[18px]">
+      <div className="flex-none px-[18px] pt-[18px]">
         <div className="flex items-start gap-3">
           <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${CHIP_PENDING}`}><ShieldCheck size={18} /></div>
           <div>
@@ -1854,39 +1854,39 @@ function UpdateConsentSheet({ data, unsigned, t, onApprove, onLater }: {
             <p className="mt-1 text-xs text-m-muted">{t('admin.plugins.updateConsentBody', { name: data.plugin.name, version: data.version })}</p>
           </div>
         </div>
-        <div className="mt-4 space-y-4">
-          {/* The admin is about to widen what this code may do — so say, right here, that
-              nothing ties this code to its author. One line, no checkbox, no extra click:
-              this informs, it does not block. */}
-          {unsigned && (
-            <p className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-xs ${CHIP_PENDING}`}>
-              <ShieldAlert size={13} className="mt-0.5 shrink-0" />
-              <span>{t('admin.plugins.sig.consentUnsigned')}</span>
-            </p>
-          )}
-          {data.newPermissions.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-m-muted">{t('admin.plugins.updateNewPermissions')}</h4>
-              <ul className="mt-2 space-y-1.5">
-                {data.newPermissions.map(perm => (
-                  <li key={perm} className="flex items-start gap-2 text-xs text-m-muted"><Check size={13} className="mt-0.5 shrink-0 text-[color:var(--m-st-pending)]" /><PermLabel perm={perm} t={t} /></li>
-                ))}
-              </ul>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] py-4 space-y-4">
+        {/* The admin is about to widen what this code may do — so say, right here, that
+            nothing ties this code to its author. One line, no checkbox, no extra click:
+            this informs, it does not block. */}
+        {unsigned && (
+          <p className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-xs ${CHIP_PENDING}`}>
+            <ShieldAlert size={13} className="mt-0.5 shrink-0" />
+            <span>{t('admin.plugins.sig.consentUnsigned')}</span>
+          </p>
+        )}
+        {data.newPermissions.length > 0 && (
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-m-muted">{t('admin.plugins.updateNewPermissions')}</h4>
+            <ul className="mt-2 space-y-1.5">
+              {data.newPermissions.map(perm => (
+                <li key={perm} className="flex items-start gap-2 text-xs text-m-muted"><Check size={13} className="mt-0.5 shrink-0 text-[color:var(--m-st-pending)]" /><PermLabel perm={perm} t={t} /></li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {data.newEgress.length > 0 && (
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-m-muted">{t('admin.plugins.updateNewEgress')}</h4>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {data.newEgress.map(host => <code key={host} className="rounded bg-[color:var(--m-ic)] px-1.5 py-0.5 font-mono text-[11px] text-m-muted">{host}</code>)}
             </div>
-          )}
-          {data.newEgress.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-m-muted">{t('admin.plugins.updateNewEgress')}</h4>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {data.newEgress.map(host => <code key={host} className="rounded bg-[color:var(--m-ic)] px-1.5 py-0.5 font-mono text-[11px] text-m-muted">{host}</code>)}
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="mt-5 flex items-center justify-end gap-2">
-          <MAdminButton variant="ghost" onClick={onLater}>{t('admin.plugins.updateLater')}</MAdminButton>
-          <MAdminButton onClick={onApprove}>{t('admin.plugins.updateApprove')}</MAdminButton>
-        </div>
+          </div>
+        )}
+      </div>
+      <div className="flex-none px-[18px] pb-[18px] flex items-center justify-end gap-2">
+        <MAdminButton variant="ghost" onClick={onLater}>{t('admin.plugins.updateLater')}</MAdminButton>
+        <MAdminButton onClick={onApprove}>{t('admin.plugins.updateApprove')}</MAdminButton>
       </div>
     </MSheet>
   )
@@ -1906,7 +1906,7 @@ function DependencyResolveSheet({ data, t, busy, installedIds, onDownload, onClo
   ]
   return (
     <MSheet open onClose={onClose} variant="card" material="opaque" ariaLabel={t('admin.plugins.dep.resolveTitle')}>
-      <div className="p-[18px]">
+      <div className="flex-none px-[18px] pt-[18px]">
         <div className="flex items-start gap-3">
           <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${CHIP_PENDING}`}><Puzzle size={18} /></div>
           <div>
@@ -1914,30 +1914,30 @@ function DependencyResolveSheet({ data, t, busy, installedIds, onDownload, onClo
             <p className="mt-1 text-xs text-m-muted">{t('admin.plugins.dep.resolveBody', { name: data.plugin.name })}</p>
           </div>
         </div>
-        <div className="mt-4 space-y-2.5">
-          {rows.map(r => (
-            <div key={r.id} className="flex items-center gap-3 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3">
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[13px] font-semibold text-m-ink">{r.id}</div>
-                <div className="mt-0.5 text-[11.5px] text-m-muted">
-                  {r.installed
-                    ? t('admin.plugins.dep.mismatch', { wanted: r.constraint, installed: r.installed })
-                    : t('admin.plugins.dep.requires', { version: r.constraint })}
-                </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-[18px] py-4 space-y-2.5">
+        {rows.map(r => (
+          <div key={r.id} className="flex items-center gap-3 rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3">
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13px] font-semibold text-m-ink">{r.id}</div>
+              <div className="mt-0.5 text-[11.5px] text-m-muted">
+                {r.installed
+                  ? t('admin.plugins.dep.mismatch', { wanted: r.constraint, installed: r.installed })
+                  : t('admin.plugins.dep.requires', { version: r.constraint })}
               </div>
-              <button type="button" onClick={() => onDownload(r.id, r.constraint)} disabled={busy}
-                className={`shrink-0 ${ACT_PILL}`}>
-                <Download size={13} /> {r.installed ? t('admin.plugins.dep.update') : t('admin.plugins.dep.download')}
-              </button>
             </div>
-          ))}
-          {rows.some(r => !installedIds.has(r.id)) && (
-            <p className="pt-1 text-[11.5px] text-m-faint">{t('admin.plugins.dep.resolveHint')}</p>
-          )}
-        </div>
-        <div className="mt-5 flex items-center justify-end">
-          <MAdminButton variant="ghost" onClick={onClose}>{t('common.cancel')}</MAdminButton>
-        </div>
+            <button type="button" onClick={() => onDownload(r.id, r.constraint)} disabled={busy}
+              className={`shrink-0 ${ACT_PILL}`}>
+              <Download size={13} /> {r.installed ? t('admin.plugins.dep.update') : t('admin.plugins.dep.download')}
+            </button>
+          </div>
+        ))}
+        {rows.some(r => !installedIds.has(r.id)) && (
+          <p className="pt-1 text-[11.5px] text-m-faint">{t('admin.plugins.dep.resolveHint')}</p>
+        )}
+      </div>
+      <div className="flex-none px-[18px] pb-[18px] flex items-center justify-end">
+        <MAdminButton variant="ghost" onClick={onClose}>{t('common.cancel')}</MAdminButton>
       </div>
     </MSheet>
   )

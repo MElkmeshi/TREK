@@ -1793,15 +1793,15 @@ function SignatureBlockDialog({ data, entry, busy, t, onRetrust, onClose }: {
 
   return (
     <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
+      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md max-h-[88vh] flex flex-col shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="shrink-0 px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-warning-soft grid place-items-center shrink-0"><ShieldAlert size={18} className="text-warning" /></div>
           <div>
             <h3 className="text-sm font-semibold text-content">{t('admin.plugins.sig.title', { name: data.subject.name })}</h3>
             <p className="text-xs text-content-muted mt-1">{t(bodyKey as never)}</p>
           </div>
         </div>
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 min-h-0 flex-1 overflow-y-auto">
           {/* Fingerprints, not full keys: these exist to be COMPARED by a human — read the
               new one back to the author over the phone. The full key travels in the request. */}
           {canRetrust && (
@@ -1815,7 +1815,7 @@ function SignatureBlockDialog({ data, entry, busy, t, onRetrust, onClose }: {
             <p className="text-xs text-content-faint font-mono break-all bg-surface-tertiary rounded-lg px-3 py-2">{data.detail}</p>
           )}
         </div>
-        <div className="px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end gap-2">
+        <div className="shrink-0 px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end gap-2">
           <button type="button" onClick={onClose}
             className="text-xs font-medium px-3.5 py-2 rounded-lg border border-edge text-content-muted hover:text-content hover:bg-surface-tertiary transition-colors">
             {offerRetrust ? t('admin.plugins.sig.cancel') : t('common.close')}
@@ -1857,15 +1857,15 @@ function UpdateConsentDialog({ data, unsigned, t, onApprove, onLater }: {
 }) {
   return (
     <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onLater}>
-      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
+      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md max-h-[88vh] flex flex-col shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="shrink-0 px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-warning-soft grid place-items-center shrink-0"><ShieldCheck size={18} className="text-warning" /></div>
           <div>
             <h3 className="text-sm font-semibold text-content">{t('admin.plugins.updateConsentTitle')}</h3>
             <p className="text-xs text-content-muted mt-1">{t('admin.plugins.updateConsentBody', { name: data.plugin.name, version: data.version })}</p>
           </div>
         </div>
-        <div className="p-5 space-y-4">
+        <div className="p-5 space-y-4 min-h-0 flex-1 overflow-y-auto">
           {/* The admin is about to widen what this code may do — so say, right here, that
               nothing ties this code to its author. One line, no checkbox, no extra click:
               this informs, it does not block. */}
@@ -1894,7 +1894,7 @@ function UpdateConsentDialog({ data, unsigned, t, onApprove, onLater }: {
             </div>
           )}
         </div>
-        <div className="px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end gap-2">
+        <div className="shrink-0 px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end gap-2">
           <button type="button" onClick={onLater} className="text-xs font-medium px-3.5 py-2 rounded-lg border border-edge text-content-muted hover:text-content hover:bg-surface-tertiary transition-colors">{t('admin.plugins.updateLater')}</button>
           <button type="button" onClick={onApprove} className="text-xs font-semibold px-4 py-2 rounded-lg bg-accent text-accent-text hover:bg-accent-hover transition-colors">{t('admin.plugins.updateApprove')}</button>
         </div>
@@ -1917,15 +1917,15 @@ function DependencyResolveDialog({ data, t, busy, installedIds, onDownload, onCl
   ]
   return (
     <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
+      <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-md max-h-[88vh] flex flex-col shadow-modal overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="shrink-0 px-5 py-4 border-b border-edge-secondary flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-warning-soft grid place-items-center shrink-0"><Puzzle size={18} className="text-warning" /></div>
           <div>
             <h3 className="text-sm font-semibold text-content">{t('admin.plugins.dep.resolveTitle')}</h3>
             <p className="text-xs text-content-muted mt-1">{t('admin.plugins.dep.resolveBody', { name: data.plugin.name })}</p>
           </div>
         </div>
-        <div className="p-5 space-y-2.5">
+        <div className="p-5 space-y-2.5 min-h-0 flex-1 overflow-y-auto">
           {rows.map(r => (
             <div key={r.id} className="flex items-center gap-3 p-3 rounded-xl border border-edge-secondary bg-surface-tertiary">
               <div className="min-w-0 flex-1">
@@ -1946,7 +1946,7 @@ function DependencyResolveDialog({ data, t, busy, installedIds, onDownload, onCl
             <p className="text-[11.5px] text-content-faint pt-1">{t('admin.plugins.dep.resolveHint')}</p>
           )}
         </div>
-        <div className="px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end">
+        <div className="shrink-0 px-5 py-3.5 border-t border-edge-secondary bg-surface-secondary flex items-center justify-end">
           <button type="button" onClick={onClose} className="text-xs font-medium px-3.5 py-2 rounded-lg border border-edge text-content-muted hover:text-content hover:bg-surface-tertiary transition-colors">{t('common.cancel')}</button>
         </div>
       </div>
