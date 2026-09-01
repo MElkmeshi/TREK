@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import PluginIcon from '../shared/PluginIcon'
 import { adminApi } from '../../api/client'
+import { useInstanceSettings } from './useInstanceSettings'
 import { usePluginStore } from '../../store/pluginStore'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
@@ -49,6 +50,9 @@ interface PluginRow {
   operatorEgress?: boolean
   /** How many hosts the admin has added — 0 means the plugin can't reach anything yet. */
   egressHostCount?: number
+  /** How many `scope:'instance'` settings fields the plugin declares — gates the
+   * "Instance settings" menu item without a per-plugin fetch. */
+  instanceSettingsCount?: number
   dependencies?: PluginDependencies
   dependencyStatus?: DependencyStatus
   dependencyIssues?: DependencyIssues
@@ -408,6 +412,8 @@ export default function AdminPluginsPanel() {
   const [detailFor, setDetailFor] = useState<RegistryItem | null>(null)
   const [errorsFor, setErrorsFor] = useState<{ id: string; rows: Array<{ ts: string; level: string; message: string }> } | null>(null)
   const [egressFor, setEgressFor] = useState<{ id: string; supported: boolean; hosts: string[] } | null>(null)
+  // The admin-owned scope:'instance' settings form — shared logic with the phone shell.
+  const settings = useInstanceSettings()
   const [egressDraft, setEgressDraft] = useState('')
   const [egressSaving, setEgressSaving] = useState(false)
   const [egressError, setEgressError] = useState('')
@@ -571,6 +577,11 @@ export default function AdminPluginsPanel() {
     } finally {
       setEgressSaving(false)
     }
+  }
+
+  const openInstanceSettings = (id: string) => {
+    setMenu(null)
+    settings.open(id)
   }
 
   const openErrors = (id: string) => {
@@ -962,6 +973,7 @@ export default function AdminPluginsPanel() {
                   code: p.updateBlock!.code, detail: p.updateBlock!.detail,
                 })}
                 onErrors={() => openErrors(p.id)} onEgress={() => openEgress(p.id)}
+                onSettings={() => openInstanceSettings(p.id)}
                 onUninstall={() => { setMenu(null); setConfirmUninstall(p) }} />
             ))}
           </div>
@@ -1043,6 +1055,62 @@ export default function AdminPluginsPanel() {
                   <p className="text-xs text-content-faint">{t('admin.plugins.allowedHosts.restartNote')}</p>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Instance-wide settings (the admin-owned scope:'instance' fields) */}
+      {settings.form && (
+        <div role="presentation" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={settings.close}>
+          <div role="presentation" className="bg-surface-card border border-edge rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col shadow-modal" onClick={e => e.stopPropagation()}>
+            <div className="px-5 py-3.5 border-b border-edge-secondary flex items-center justify-between">
+              <span className="text-sm font-semibold text-content flex items-center gap-2"><SlidersHorizontal size={15} /> {settings.form.id} — {t('admin.plugins.instanceSettings')}</span>
+              <button type="button" aria-label={t('common.close')} onClick={settings.close} className="text-content-faint hover:text-content"><X size={16} /></button>
+            </div>
+            <div className="p-5 space-y-4 overflow-y-auto">
+              {settings.form.fields.map(f => (
+                <label key={f.key} className="block">
+                  <span className="block text-sm font-medium text-content-secondary mb-1">
+                    {f.label || f.key}{f.required && <span className="text-danger"> *</span>}
+                  </span>
+                  {f.input_type === 'checkbox' ? (
+                    <input
+                      type="checkbox"
+                      checked={settings.form.values[f.key] === true}
+                      onChange={e => settings.setValue(f.key, e.target.checked)}
+                      className="h-4 w-4 rounded border-edge"
+                    />
+                  ) : f.input_type === 'select' && f.options ? (
+                    <select
+                      value={String(settings.form.values[f.key] ?? '')}
+                      onChange={e => settings.setValue(f.key, e.target.value)}
+                      className="w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-content"
+                    >
+                      <option value="">—</option>
+                      {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  ) : (
+                    <input
+                      type={f.secret ? 'password' : (f.input_type === 'number' ? 'number' : 'text')}
+                      value={String(settings.form.values[f.key] ?? '')}
+                      placeholder={f.placeholder || ''}
+                      autoComplete={f.secret ? 'new-password' : 'off'}
+                      onChange={e => settings.setValue(f.key, e.target.value)}
+                      className="w-full rounded-lg border border-edge bg-surface px-3 py-2 text-sm text-content"
+                    />
+                  )}
+                  {f.hint && <span className="block text-xs text-content-muted mt-1">{f.hint}</span>}
+                </label>
+              ))}
+              {settings.error && <p className="text-xs text-danger">{settings.error}</p>}
+            </div>
+            <div className="px-5 py-3.5 border-t border-edge-secondary flex justify-end">
+              <button type="button"
+                disabled={settings.saving}
+                onClick={() => void settings.save()}
+                className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              >{t('common.save')}</button>
             </div>
           </div>
         </div>
@@ -1185,11 +1253,11 @@ function EmptyState({ t, onDiscover }: { t: T; onDiscover: () => void }) {
   )
 }
 
-function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIncompatible, blocked, onToggle, onUpdate, onRestart, onChangeVersion, onResume, onReviewBlock, onErrors, onEgress, onUninstall }: {
+function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIncompatible, blocked, onToggle, onUpdate, onRestart, onChangeVersion, onResume, onReviewBlock, onErrors, onEgress, onSettings, onUninstall }: {
   p: PluginRow; t: T; busy: string | null; menu: string | null; setMenu: (v: string | null) => void
   hasUpdate: boolean; latestVer?: string; newerIncompatible: { version: string; range: string } | null; blocked: boolean
   onToggle: () => void; onUpdate: () => void; onRestart: () => void; onChangeVersion: () => void; onResume: () => void; onReviewBlock: () => void
-  onErrors: () => void; onEgress: () => void; onUninstall: () => void
+  onErrors: () => void; onEgress: () => void; onSettings: () => void; onUninstall: () => void
 }) {
   const caps = deriveCaps(parseJson<string[]>(p.permissions, []), parseJson<{ widget?: { slot?: string } }>(p.capabilities, {}), t)
   const deps = deriveDeps(p, t)
@@ -1334,8 +1402,18 @@ function InstalledRow({ p, t, busy, menu, setMenu, hasUpdate, latestVer, newerIn
               {p.enabled === 1 && (
                 <MenuItem icon={<RotateCw size={14} />} label={t('admin.plugins.restart')} onClick={onRestart} />
               )}
+              {/* Only a plugin that DECLARES scope:'instance' fields gets the item — an
+                  empty form would invite the admin to configure nothing. */}
+              {(p.instanceSettingsCount ?? 0) > 0 && (
+                <MenuItem icon={<SlidersHorizontal size={14} />} label={t('admin.plugins.instanceSettings')} onClick={onSettings} />
+              )}
               <MenuItem icon={<Bug size={14} />} label={t('admin.plugins.viewErrors')} onClick={onErrors} />
-              <MenuItem icon={<Globe size={14} />} label={t('admin.plugins.allowedHosts')} onClick={onEgress} />
+              {/* Only a plugin that DECLARED operatorEgress gets the item — an admin must
+                  never be invited to widen egress for a plugin that didn't ask for it
+                  (same rule the row's egress chip follows). */}
+              {p.operatorEgress && (
+                <MenuItem icon={<Globe size={14} />} label={t('admin.plugins.allowedHosts')} onClick={onEgress} />
+              )}
               {/* Registry plugins only — a sideload/dev-link has no registry versions to pick from. */}
               {isRegistrySourced(p.source_repo) && (
                 <MenuItem icon={<History size={14} />} label={t('admin.plugins.changeVersion')} onClick={onChangeVersion} />

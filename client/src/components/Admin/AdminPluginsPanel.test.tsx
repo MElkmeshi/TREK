@@ -129,7 +129,9 @@ describe('AdminPluginsPanel — Discover modal, operator-egress pill', () => {
  * the UI. It must escape every overflow ancestor, and flip up when the bottom is tight.
  */
 describe('AdminPluginsPanel — row ⋯ menu is never clipped (#1523)', () => {
-  const withRepo = plugin({ source_repo: 'trek/gotify', operatorEgress: false })
+  // operatorEgress so the menu shows every action, Allowed hosts included (it is
+  // gated on the declaration, like the row chip).
+  const withRepo = plugin({ source_repo: 'trek/gotify', operatorEgress: true })
   const realRect = HTMLButtonElement.prototype.getBoundingClientRect
   afterEach(() => { HTMLButtonElement.prototype.getBoundingClientRect = realRect })
 
@@ -846,6 +848,15 @@ describe('AdminPluginsPanel — row actions', () => {
 
     expect(screen.getByText('View error log')).toBeInTheDocument()
     expect(screen.queryByText('Restart')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-PANEL-049: Allowed hosts is offered only to a plugin that declared operatorEgress', async () => {
+    // An admin must never be invited to widen egress for a plugin that didn't ask for it
+    // — same rule the row chip already follows.
+    await openRowMenu(plugin({ operatorEgress: false }))
+
+    expect(screen.getByText('View error log')).toBeInTheDocument() // menu is open
+    expect(screen.queryByText('Allowed hosts')).not.toBeInTheDocument()
   })
 })
 
@@ -1776,7 +1787,9 @@ describe('AdminPluginsPanel toolbar and dialogs', () => {
 
   it('FE-W5PLG-011: a plugin whose runtime cannot take extra hosts says so', async () => {
     const user = userEvent.setup()
-    mockPanel([row()])
+    // Declares operatorEgress (so the menu item shows), but the runtime lookup
+    // disagrees — the dialog's unsupported notice is the truth-teller.
+    mockPanel([row({ operatorEgress: true })])
     server.use(
       http.get('*/api/admin/plugins/a-widget/egress-hosts', () => HttpResponse.json({ supported: false, hosts: [] })),
     )
@@ -1791,7 +1804,7 @@ describe('AdminPluginsPanel toolbar and dialogs', () => {
 
   it('FE-W5PLG-012: a failing egress lookup still opens the dialog in the unsupported state', async () => {
     const user = userEvent.setup()
-    mockPanel([row()])
+    mockPanel([row({ operatorEgress: true })])
     server.use(
       http.get('*/api/admin/plugins/a-widget/egress-hosts', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
     )
@@ -2145,5 +2158,143 @@ describe('AdminPluginsPanel — update all', () => {
 
     release()
     await waitFor(() => expect(started).toEqual(['a-widget', 'b-widget']))
+  })
+})
+
+/**
+ * The admin-owned `scope:'instance'` settings form. The fields are declared manifest
+ * data (validated at install), the values live in the plugin's instance config, and a
+ * save may RESTART a running plugin — the child reads config once, at init — so the
+ * admin must be told when that happened rather than wondering why the plugin blinked.
+ */
+describe('AdminPluginsPanel — instance settings', () => {
+  const FIELDS = [
+    { key: 'apiUrl', label: 'API URL', input_type: 'text', required: true, secret: false },
+    { key: 'apiKey', label: 'API key', input_type: 'text', required: false, secret: true },
+  ]
+
+  async function openRowMenu(p: Record<string, unknown>) {
+    mockList(p)
+    render(<><ToastContainer /><AdminPluginsPanel /></>)
+    fireEvent.click(await screen.findByTestId('plugin-row-menu-btn-trek-gotify'))
+  }
+
+  async function openSettings(config: Record<string, unknown> = { apiUrl: 'https://gotify.mydomain.com', apiKey: '••••••••' }) {
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () => HttpResponse.json({ fields: FIELDS, config })),
+    )
+    await openRowMenu(plugin({ instanceSettingsCount: 2 }))
+    fireEvent.click(screen.getByText('Instance settings'))
+    await waitFor(() => expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument(), { timeout: 5000 })
+  }
+
+  it('FE-COMP-PLUGINS-CFG-001: a plugin with instance fields offers the menu item, opening the form', async () => {
+    await openSettings()
+    // Both declared fields render, the secret as a masked password input.
+    expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('••••••••')).toHaveAttribute('type', 'password')
+  })
+
+  it('FE-COMP-PLUGINS-CFG-002: a plugin with NO instance fields gets no menu item', async () => {
+    await openRowMenu(plugin({ instanceSettingsCount: 0 }))
+    expect(screen.getByText('View error log')).toBeInTheDocument() // menu is open
+    expect(screen.queryByText('Instance settings')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-CFG-003: saving sends the edits but never the untouched secret mask', async () => {
+    let body: Record<string, unknown> | null = null
+    server.use(
+      http.put('*/api/admin/plugins/trek-gotify/config', async ({ request }) => {
+        body = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ config: body, restarted: false })
+      }),
+    )
+    await openSettings()
+
+    fireEvent.change(screen.getByDisplayValue('https://gotify.mydomain.com'), { target: { value: 'https://new.example' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    expect(await screen.findByText('Settings saved', {}, { timeout: 5000 })).toBeInTheDocument()
+    // The mask is a display artifact, not a value — sending it would overwrite the stored secret.
+    expect(body).toEqual({ apiUrl: 'https://new.example' })
+  })
+
+  it('FE-COMP-PLUGINS-CFG-004: a save that restarted the running plugin says so', async () => {
+    server.use(
+      http.put('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ config: { apiUrl: 'https://gotify.mydomain.com' }, restarted: true })),
+    )
+    await openSettings()
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    expect(await screen.findByText('Settings saved — plugin restarted', {}, { timeout: 5000 })).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-CFG-005: renders every declared field type and saves the edited values', async () => {
+    const RICH = [
+      { key: 'mode', label: 'Mode', input_type: 'select', options: [{ value: 'fast', label: 'Fast' }, { value: 'slow', label: 'Slow' }], hint: 'Pick one' },
+      { key: 'enabled', input_type: 'checkbox' }, // no label — the key stands in
+      { key: 'retries', label: 'Retries', input_type: 'number', required: true },
+    ]
+    let body: Record<string, unknown> | null = null
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ fields: RICH, config: { mode: 'slow', enabled: true } })),
+      http.put('*/api/admin/plugins/trek-gotify/config', async ({ request }) => {
+        body = await request.json() as Record<string, unknown>
+        return HttpResponse.json({ config: body, restarted: false })
+      }),
+    )
+    await openRowMenu(plugin({ instanceSettingsCount: 3 }))
+    fireEvent.click(screen.getByText('Instance settings'))
+
+    // Stored values land in the right controls; an unset value renders empty.
+    const select = await screen.findByRole('combobox', {}, { timeout: 5000 })
+    expect(select).toHaveValue('slow')
+    expect(screen.getByRole('checkbox')).toBeChecked()
+    expect(screen.getByRole('spinbutton')).toHaveValue(null)
+    expect(screen.getByText('Pick one')).toBeInTheDocument() // hint
+    expect(screen.getByText('enabled')).toBeInTheDocument() // label falls back to the key
+
+    fireEvent.change(select, { target: { value: 'fast' } })
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.change(screen.getByRole('spinbutton'), { target: { value: '3' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    expect(await screen.findByText('Settings saved', {}, { timeout: 5000 })).toBeInTheDocument()
+    expect(body).toEqual({ mode: 'fast', enabled: false, retries: '3' })
+  })
+
+  it('FE-COMP-PLUGINS-CFG-006: a failed config fetch is a toast, not a broken dialog', async () => {
+    server.use(
+      http.get('*/api/admin/plugins/trek-gotify/config', () => HttpResponse.json({ error: 'nope' }, { status: 500 })),
+    )
+    await openRowMenu(plugin({ instanceSettingsCount: 2 }))
+    fireEvent.click(screen.getByText('Instance settings'))
+
+    expect(await screen.findByText('Error', {}, { timeout: 5000 })).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-CFG-007: a rejected save shows the server reason and keeps the dialog open', async () => {
+    server.use(
+      http.put('*/api/admin/plugins/trek-gotify/config', () =>
+        HttpResponse.json({ error: 'config refused' }, { status: 400 })),
+    )
+    await openSettings()
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    expect(await screen.findByText('config refused', {}, { timeout: 5000 })).toBeInTheDocument()
+    // Still open — the admin's edits are not thrown away on a refusal.
+    expect(screen.getByDisplayValue('https://gotify.mydomain.com')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-PLUGINS-CFG-008: the dialog closes without saving', async () => {
+    await openSettings()
+
+    fireEvent.click(screen.getByRole('button', { name: /^close$/i }))
+
+    expect(screen.queryByDisplayValue('https://gotify.mydomain.com')).not.toBeInTheDocument()
   })
 })

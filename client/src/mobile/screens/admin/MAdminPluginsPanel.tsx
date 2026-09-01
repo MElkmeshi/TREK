@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import PluginIcon from '../../../components/shared/PluginIcon'
 import { adminApi } from '../../../api/client'
+import { useInstanceSettings } from '../../../components/Admin/useInstanceSettings'
 import { usePluginStore } from '../../../store/pluginStore'
 import { useTranslation } from '../../../i18n'
 import { useToast } from '../../../components/shared/Toast'
@@ -51,6 +52,9 @@ interface PluginRow {
   operatorEgress?: boolean
   /** How many hosts the admin has added — 0 means the plugin can't reach anything yet. */
   egressHostCount?: number
+  /** How many `scope:'instance'` settings fields the plugin declares — gates the
+   * "Instance settings" sheet action without a per-plugin fetch. */
+  instanceSettingsCount?: number
   dependencies?: PluginDependencies
   dependencyStatus?: DependencyStatus
   dependencyIssues?: DependencyIssues
@@ -418,6 +422,8 @@ export default function MAdminPluginsPanel() {
   const [egressDraft, setEgressDraft] = useState('')
   const [egressSaving, setEgressSaving] = useState(false)
   const [egressError, setEgressError] = useState('')
+  // The admin-owned scope:'instance' settings sheet — shared logic with the desktop shell.
+  const settings = useInstanceSettings()
   const [confirmUninstall, setConfirmUninstall] = useState<PluginRow | null>(null)
   // The version picker for an INSTALLED plugin ("Change version…"); versions land async
   // from the registry detail endpoint, which computes each version's compat verdict.
@@ -583,6 +589,11 @@ export default function MAdminPluginsPanel() {
     } finally {
       setEgressSaving(false)
     }
+  }
+
+  const openInstanceSettings = (id: string) => {
+    setMenu(null)
+    settings.open(id)
   }
 
   const openErrors = (id: string) => {
@@ -961,6 +972,7 @@ export default function MAdminPluginsPanel() {
           onRestart={() => restart(rowMenuPlugin.id)}
           onErrors={() => openErrors(rowMenuPlugin.id)}
           onEgress={() => openEgress(rowMenuPlugin.id)}
+          onSettings={() => openInstanceSettings(rowMenuPlugin.id)}
           onChangeVersion={() => openVersionPicker(rowMenuPlugin)}
           onUninstall={() => { setMenu(null); setConfirmUninstall(rowMenuPlugin) }} />
       )}
@@ -1070,6 +1082,56 @@ export default function MAdminPluginsPanel() {
                 <p className="font-geist text-[0.625rem] text-m-faint">{t('admin.plugins.allowedHosts.restartNote')}</p>
               </div>
             )}
+          </MAdminSheetFrame>
+        </MSheet>
+      )}
+
+      {/* Instance-wide settings (the admin-owned scope:'instance' fields) */}
+      {settings.form && (
+        <MSheet open onClose={settings.close} variant="bottom" material="opaque" ariaLabel={t('admin.plugins.instanceSettings')}>
+          <MAdminSheetFrame
+            title={<span className="flex items-center gap-2"><SlidersHorizontal size={15} /> {settings.form.id} — {t('admin.plugins.instanceSettings')}</span>}
+            onClose={settings.close}
+          >
+            <div className="space-y-4">
+              {settings.form.fields.map(f => (
+                <label key={f.key} className="block">
+                  <span className="mb-1 block text-sm font-medium text-m-ink">
+                    {f.label || f.key}{f.required && <span className="text-[color:var(--m-st-danger)]"> *</span>}
+                  </span>
+                  {f.input_type === 'checkbox' ? (
+                    <MToggle
+                      checked={settings.form.values[f.key] === true}
+                      onChange={on => settings.setValue(f.key, on)}
+                      ariaLabel={f.label || f.key}
+                    />
+                  ) : f.input_type === 'select' && f.options ? (
+                    <select
+                      value={String(settings.form.values[f.key] ?? '')}
+                      onChange={e => settings.setValue(f.key, e.target.value)}
+                      className="h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none focus:border-[color:var(--m-faint)]"
+                    >
+                      <option value="">—</option>
+                      {f.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  ) : (
+                    <input
+                      type={f.secret ? 'password' : (f.input_type === 'number' ? 'number' : 'text')}
+                      value={String(settings.form.values[f.key] ?? '')}
+                      placeholder={f.placeholder || ''}
+                      autoComplete={f.secret ? 'new-password' : 'off'}
+                      onChange={e => settings.setValue(f.key, e.target.value)}
+                      className="h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none placeholder:text-m-faint focus:border-[color:var(--m-faint)]"
+                    />
+                  )}
+                  {f.hint && <span className="mt-1 block font-geist text-[0.625rem] text-m-faint">{f.hint}</span>}
+                </label>
+              ))}
+              {settings.error && <p className="text-[0.6875rem] text-[color:var(--m-st-danger)]">{settings.error}</p>}
+              <MAdminButton disabled={settings.saving} onClick={() => void settings.save()} className="h-[42px] w-full">
+                {t('common.save')}
+              </MAdminButton>
+            </div>
           </MAdminSheetFrame>
         </MSheet>
       )}
@@ -1334,9 +1396,9 @@ function InstalledRow({ p, t, busy, hasUpdate, latestVer, newerIncompatible, blo
 }
 
 // Row ⋯ action sheet — the desktop portal menu re-expressed as a bottom sheet.
-function RowActionsSheet({ p, t, onClose, onRestart, onErrors, onEgress, onChangeVersion, onUninstall }: {
+function RowActionsSheet({ p, t, onClose, onRestart, onErrors, onEgress, onSettings, onChangeVersion, onUninstall }: {
   p: PluginRow; t: T; onClose: () => void
-  onRestart: () => void; onErrors: () => void; onEgress: () => void; onChangeVersion: () => void; onUninstall: () => void
+  onRestart: () => void; onErrors: () => void; onEgress: () => void; onSettings: () => void; onChangeVersion: () => void; onUninstall: () => void
 }) {
   const linkable = p.source_repo && p.source_repo !== 'local:upload' && p.source_repo !== 'local:link'
   const rowClass = 'flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-[0.8125rem] font-semibold text-m-ink'
@@ -1347,8 +1409,18 @@ function RowActionsSheet({ p, t, onClose, onRestart, onErrors, onEgress, onChang
           {p.enabled === 1 && (
             <button type="button" className={rowClass} onClick={onRestart}><RotateCw size={16} /> {t('admin.plugins.restart')}</button>
           )}
+          {/* Only a plugin that DECLARES scope:'instance' fields gets the action — an
+              empty form would invite the admin to configure nothing. */}
+          {(p.instanceSettingsCount ?? 0) > 0 && (
+            <button type="button" className={rowClass} onClick={onSettings}><SlidersHorizontal size={16} /> {t('admin.plugins.instanceSettings')}</button>
+          )}
           <button type="button" className={rowClass} onClick={onErrors}><Bug size={16} /> {t('admin.plugins.viewErrors')}</button>
-          <button type="button" className={rowClass} onClick={onEgress}><Globe size={16} /> {t('admin.plugins.allowedHosts')}</button>
+          {/* Only a plugin that DECLARED operatorEgress gets the action — an admin must
+              never be invited to widen egress for a plugin that didn't ask for it
+              (same rule the row's egress chip follows). */}
+          {p.operatorEgress && (
+            <button type="button" className={rowClass} onClick={onEgress}><Globe size={16} /> {t('admin.plugins.allowedHosts')}</button>
+          )}
           {/* Registry plugins only — a sideload/dev-link has no registry versions to pick from. */}
           {isRegistrySourced(p.source_repo) && (
             <button type="button" className={rowClass} onClick={onChangeVersion}><History size={16} /> {t('admin.plugins.changeVersion')}</button>
