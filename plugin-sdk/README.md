@@ -127,6 +127,39 @@ Your plugin runs in an **isolated child process**. `ctx` is the only way to reac
 TREK, and it grants exactly the permissions your `trek-plugin.json` declares — an
 ungranted call throws `PERMISSION_DENIED`.
 
+## Settings
+
+Declare settings in `trek-plugin.json`; TREK renders the form, you write no settings UI.
+
+```json
+"settings": [
+  { "key": "api_url", "label": "API URL", "default": "https://api.example", "required": true },
+  { "key": "retries", "label": "Retries", "input_type": "number", "default": 3 },
+  { "key": "api_key", "label": "API key", "scope": "user", "secret": true, "required": true },
+  { "key": "region", "label": "Region", "input_type": "select",
+    "options": [{ "value": "eu", "label": "EU" }, { "value": "us", "label": "US" }], "default": "eu" }
+]
+```
+
+| Attribute | Meaning |
+|---|---|
+| `key` | Identifier (`^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$`). |
+| `scope` | `instance` (default) — set once by the admin, arrives in `ctx.config`. `user` — per user, read with `await ctx.settings.get(key)`. |
+| `input_type` | `text` (default), `password`, `number`, `checkbox`, `select` (with `options`). |
+| `default` | The field's value wherever nobody set one. The form pre-fills it **and the runtime resolves it** — `ctx.config.api_url` / `ctx.settings.get('region')` return it until someone saves something else — so a plugin with sensible defaults works before anyone opens the form. Satisfies `required`. Not allowed on a `secret` (the manifest is public); must be a boolean on a `checkbox` and one of the `options` when declared. `trek-plugin dev` seeds its fixtures from these too. |
+| `required` | Enforced: the form refuses Save while the field is blank, and the host answers `400 { error: 'Missing required setting "<key>"' }` if a save reaches it anyway. A `checkbox` is exempt (that would be consent, not a setting). A required `scope:'user'` field also gates whether a notification channel dispatches to that user. |
+| `secret` | Encrypted at rest, decrypted only into the server-side `ctx.config` / `ctx.settings`, masked to the browser, never sent to the iframe. |
+| `label`, `placeholder`, `hint` | Form text. |
+| `options` | `[{ "value", "label" }]` for a `select` (bare strings are accepted and coerced). |
+| `oauth` | Descriptive metadata only — for a host-brokered flow see the OAuth broker below. |
+
+Any other attribute is **silently dropped at install**. `trek-plugin validate` warns on
+one (`manifest.settings-known-keys`) so a typo like `"defalt"` doesn't quietly do nothing.
+
+`ctx.config` is frozen at activation — the host re-spawns the plugin when the admin
+saves. `ctx.settings.get()` is live per call and returns `undefined` in a userless
+context (`onLoad`, jobs, scheduler) — fall back to `ctx.config` there.
+
 ## Test without a running TREK
 
 ```js
@@ -287,6 +320,7 @@ npx trek-plugin-sdk publish --repo you/repo --tag v1.1.0 --sign   # or just answ
 - `definePlugin(def)` + all the plugin types (`PluginContext`, `PluginRoute`, `PluginJob`, `PhotoProvider`, `CalendarSource`).
 - `PLUGIN_API_VERSION` — embed as `apiVersion` in your manifest.
 - `validateManifest(json)` — the manifest rules the server loader uses.
+- `settingDefaults(manifest, scope)` — the `default`s of one settings scope, keyed by field: what the host resolves for an unset field, and what `dev` seeds `ctx.config` / `ctx.settings` with. Spread it under your own fixtures when calling `createMockHost` to mirror the host. `SETTING_FIELD_KEYS` is the attribute list the host stores.
 - `createMockHost(opts)` (from `trek-plugin-sdk/testing`).
 - `TREK_UI_CSS`, `TREK_THEME_JS`, `TREK_UI_MARKER`, `injectTrekUi(html)` — the design kit, for authors who inline it themselves (a bundler, a custom build). Most plugins just use the `<!-- trek:ui -->` marker instead.
 

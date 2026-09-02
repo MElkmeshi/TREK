@@ -24,6 +24,9 @@ export const pluginSettingsFieldSchema = z.object({
   hint: z.string().nullish(),
   required: z.boolean().optional(),
   secret: z.boolean().optional(),
+  /** The field's effective value when nothing is stored: the form pre-fills it and the
+   *  runtime resolves it, so the form shows what the plugin gets. Never on a secret field. */
+  default: z.union([z.string(), z.number(), z.boolean()]).nullish(),
   options: z.array(z.object({ value: z.string(), label: z.string() })).optional(),
 });
 export type PluginSettingsField = z.infer<typeof pluginSettingsFieldSchema>;

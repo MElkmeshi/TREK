@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { adminApi, type PluginUserSettingField } from '../../api/client'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
+import { seedSettingsValues, findMissingRequired, settingsPatch } from '../Plugins/settingsForm'
 
 /** The server's stand-in for a stored secret — a display artifact, never a value to send back. */
-export const SECRET_MASK = '••••••••'
 
 export interface InstanceSettingsForm {
   id: string
@@ -31,12 +31,7 @@ export function useInstanceSettings() {
     setError('')
     adminApi.pluginConfig(id)
       .then(d => {
-        const values: Record<string, string | boolean> = {}
-        for (const f of d.fields) {
-          const v = d.config[f.key]
-          values[f.key] = f.input_type === 'checkbox' ? v === true : (v == null ? '' : String(v))
-        }
-        setForm({ id, fields: d.fields, values })
+        setForm({ id, fields: d.fields, values: seedSettingsValues(d.fields, d.config) })
       })
       .catch(() => toast.error(t('common.error')))
   }
@@ -48,15 +43,14 @@ export function useInstanceSettings() {
 
   const save = async () => {
     if (!form) return
+    const missing = findMissingRequired(form.fields, form.values)
+    if (missing) {
+      setError(t('admin.plugins.requiredMissing', { field: missing.label || missing.key }))
+      return
+    }
     setSaving(true); setError('')
     try {
-      const patch: Record<string, unknown> = {}
-      for (const f of form.fields) {
-        const v = form.values[f.key]
-        if (f.secret && v === SECRET_MASK) continue
-        patch[f.key] = v
-      }
-      const d = await adminApi.pluginSaveConfig(form.id, patch)
+      const d = await adminApi.pluginSaveConfig(form.id, settingsPatch(form.fields, form.values))
       toast.success(t(d.restarted ? 'admin.plugins.settingsSavedRestarted' : 'admin.plugins.settingsSaved'))
       setForm(null)
     } catch (e) {

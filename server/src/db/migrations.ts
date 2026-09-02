@@ -4205,13 +4205,25 @@ function runMigrations(db: Database.Database): void {
      * should show what its author put in it, and #1260's set is everything the
      * linked trips happen to contain. Owners who want them back have one
      * switch in Journey Settings.
-     *
-     * Appended LAST: the array is index-addressed against schema_version.
      */
     () => {
       const cols = db.prepare("SELECT name FROM pragma_table_info('journeys')").all() as Array<{ name: string }>;
       if (!cols.some(c => c.name === 'show_trip_tracks')) {
         db.exec('ALTER TABLE journeys ADD COLUMN show_trip_tracks INTEGER NOT NULL DEFAULT 0');
+      }
+    },
+    /**
+     * Settings-field defaults (#plugins, PR-87 feedback). A manifest `default` is the
+     * field's effective value when nothing is stored — the settings form pre-fills it and
+     * the runtime resolves it (settings-defaults.ts); it was previously accepted by the
+     * manifest and silently dropped here. JSON-encoded so string/number/boolean round-trip.
+     *
+     * Appended LAST: the array is index-addressed against schema_version.
+     */
+    () => {
+      const cols = db.prepare("SELECT name FROM pragma_table_info('plugin_settings_fields')").all() as Array<{ name: string }>;
+      if (!cols.some((c) => c.name === 'default_value')) {
+        db.exec('ALTER TABLE plugin_settings_fields ADD COLUMN default_value TEXT');
       }
     },
   ];
