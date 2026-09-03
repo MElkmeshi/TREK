@@ -23,13 +23,22 @@ interface SmtpConfig {
  * pressing "Send test email" against a blocked port got a dead "Test email
  * failed" while the socket was still waiting, and the eventual error had nobody
  * left to tell. A relay that needs more than ten seconds to accept a connection
- * or to send its banner is broken either way, so those two are cut hard. The
- * inactivity timeout stays generous (nodemailer's default is ten minutes)
- * because a relay that scans the message can be slow to acknowledge DATA.
+ * or to send its banner is broken either way, so those two are cut hard.
+ *
+ * The inactivity timeout is the one that must not be cut, and it splits by
+ * caller. It only starts counting once the relay has answered its greeting, so
+ * what it bounds is the transfer itself, and a relay that scans the message can
+ * sit on DATA for minutes before it acknowledges. A real send therefore keeps
+ * nodemailer's ten minutes: nobody is waiting on it, and a password-reset mail
+ * that is dropped because the scanner was slow fails where the user cannot see
+ * it. The admin's test send is the exception, because somebody IS waiting: the
+ * client gives that call 40 seconds (CHANNEL_TEST_TIMEOUT), so the verdict has
+ * to arrive inside it.
  */
 const CONNECT_TIMEOUT_MS = 10_000;
 const GREETING_TIMEOUT_MS = 10_000;
-const SOCKET_TIMEOUT_MS = 30_000;
+const SOCKET_TIMEOUT_MS = 600_000;
+const TEST_SOCKET_TIMEOUT_MS = 30_000;
 
 /**
  * Outgoing mail: SMTP config resolution, the password-reset delivery and the
@@ -86,7 +95,7 @@ export class MailerService {
    * The three call sites below each built this inline before the fold; keeping it
    * one method is the only change, and it keeps the freshness property visible.
    */
-  private createTransport(config: SmtpConfig) {
+  private createTransport(config: SmtpConfig, socketTimeoutMs: number = SOCKET_TIMEOUT_MS) {
     const skipTls = readEnv().smtp.skipTlsVerify || this.getAppSetting('smtp_skip_tls_verify') === 'true';
     if (skipTls) this.warnOnceAboutSkippedTls(config);
     return nodemailer.createTransport({
@@ -96,7 +105,7 @@ export class MailerService {
       auth: config.user ? { user: config.user, pass: config.pass } : undefined,
       connectionTimeout: CONNECT_TIMEOUT_MS,
       greetingTimeout: GREETING_TIMEOUT_MS,
-      socketTimeout: SOCKET_TIMEOUT_MS,
+      socketTimeout: socketTimeoutMs,
       // The operator's opt-out for a relay with a self-signed certificate, off by
       // default and reachable only through SMTP_SKIP_TLS_VERIFY or the matching
       // admin setting. It stays because self-hosted installs behind an internal
@@ -233,7 +242,7 @@ export class MailerService {
       return { success: false, error: reason };
     }
     try {
-      await this.createTransport(config).sendMail({
+      await this.createTransport(config, TEST_SOCKET_TIMEOUT_MS).sendMail({
         from: config.from,
         to,
         subject: 'TREK — Test Notification',

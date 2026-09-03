@@ -147,13 +147,30 @@ describe('MailerService TLS options', () => {
     expect(sendMail).not.toHaveBeenCalled();
   });
 
-  it('MAILER-007: every SMTP phase is bounded, so a dead relay fails instead of hanging', async () => {
+  it('MAILER-007: connecting and greeting are bounded hard, the transfer is not', async () => {
     configureSmtp();
 
     await newMailer().sendEmail('someone@example.com', 'Subject', 'Body');
 
-    // Nodemailer's own defaults (120s / 30s / 600s) all outlive the client's 8s
-    // API timeout, which is how #2196 produced a failure nobody could read.
+    // Nodemailer's connect and greeting defaults (120s / 30s) outlive the client's
+    // 8s API timeout, which is how #2196 produced a failure nobody could read. The
+    // inactivity timeout keeps its ten minutes on a real send: it bounds the
+    // transfer, a scanning relay can sit on DATA for minutes, and nobody is
+    // waiting on the result.
+    expect(lastTransportOptions()).toMatchObject({
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 600_000,
+    });
+  });
+
+  it('MAILER-007b: the admin test send bounds the transfer too, because somebody is waiting', async () => {
+    configureSmtp();
+
+    await newMailer().testSmtp('someone@example.com');
+
+    // The client gives this call 40s (CHANNEL_TEST_TIMEOUT), so a relay that
+    // accepts the connection and then goes quiet still has to produce a verdict.
     expect(lastTransportOptions()).toMatchObject({
       connectionTimeout: 10_000,
       greetingTimeout: 10_000,
