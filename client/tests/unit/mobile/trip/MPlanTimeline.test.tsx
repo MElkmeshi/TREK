@@ -211,14 +211,38 @@ describe('MPlanTimeline', () => {
       expect(screen.getByTitle('Shibuya')).toBeInTheDocument()
     })
 
-    it('FE-MOB-PLTL-006: a chip opens the day sheet', () => {
+    it('FE-MOB-PLTL-006: a stay chip opens the stay editor for members who may edit days (#2210)', () => {
       const { shell } = renderTimeline({
-        hotelChips: [{ key: 'stay-3', variant: 'stay', name: 'Capsule Tokyo', time: null }],
+        hotelChips: [{ key: 'in-3', variant: 'checkin', name: 'Capsule Tokyo', time: '15:00:00', accId: 3, placeId: 301 }],
       })
 
-      fireEvent.click(screen.getByText('Capsule Tokyo'))
+      fireEvent.click(screen.getByRole('button', { name: 'day.checkIn · Capsule Tokyo · 15:00' }))
+
+      expect(shell.openSheet).toHaveBeenCalledWith('accommodation', { dayId: 2, accId: 3, from: 'timeline' })
+    })
+
+    it('FE-MOB-PLTL-006b: without day_edit the chip opens the hotel place instead', () => {
+      const { planner, shell } = renderTimeline(
+        { hotelChips: [{ key: 'stay-3', variant: 'stay', name: 'Capsule Tokyo', time: null, accId: 3, placeId: 301 }] },
+        { can: vi.fn(() => false) },
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'mobileTrip.stay · Capsule Tokyo' }))
+
+      expect(planner.handlePlaceClick).toHaveBeenCalledWith(301)
+      expect(shell.openSheet).not.toHaveBeenCalled()
+    })
+
+    it('FE-MOB-PLTL-006c: a stay without a place still leads a read-only member to the day sheet', () => {
+      const { planner, shell } = renderTimeline(
+        { hotelChips: [{ key: 'out-3', variant: 'checkout', name: 'Capsule Tokyo', time: '11:00', accId: 3, placeId: null }] },
+        { can: vi.fn(() => false) },
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'day.checkOut · Capsule Tokyo · 11:00' }))
 
       expect(shell.openSheet).toHaveBeenCalledWith('day', { dayId: 2 })
+      expect(planner.handlePlaceClick).not.toHaveBeenCalled()
     })
 
     it('FE-MOB-PLTL-007: still renders, with the day pill, without chips or weather (#2004)', () => {

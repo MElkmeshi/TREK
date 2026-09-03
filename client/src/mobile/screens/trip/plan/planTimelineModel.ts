@@ -153,6 +153,9 @@ export interface HotelChip {
   variant: 'checkout' | 'checkin' | 'stay'
   name: string
   time: string | null
+  /** The stay behind the chip, so a tap can open it rather than the day (#2210). */
+  accId: number
+  placeId: number | null
 }
 
 const accommodationName = (a: Accommodation): string => a.place_name || a.reservation_title || ''
@@ -162,12 +165,13 @@ export function hotelChipsForDay(day: Day, days: Day[], accommodations: Accommod
   const inRange = accommodations.filter(a => isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days))
   const chips: HotelChip[] = []
   for (const a of inRange) {
+    const stay = { name: accommodationName(a), accId: a.id, placeId: a.place_id ?? null }
     if (a.end_day_id === day.id) {
-      chips.push({ key: `out-${a.id}`, variant: 'checkout', name: accommodationName(a), time: a.check_out || null })
+      chips.push({ ...stay, key: `out-${a.id}`, variant: 'checkout', time: a.check_out || null })
     } else if (a.start_day_id === day.id) {
-      chips.push({ key: `in-${a.id}`, variant: 'checkin', name: accommodationName(a), time: a.check_in || null })
+      chips.push({ ...stay, key: `in-${a.id}`, variant: 'checkin', time: a.check_in || null })
     } else {
-      chips.push({ key: `stay-${a.id}`, variant: 'stay', name: accommodationName(a), time: null })
+      chips.push({ ...stay, key: `stay-${a.id}`, variant: 'stay', time: null })
     }
   }
   const rank = { checkout: 0, checkin: 1, stay: 2 }

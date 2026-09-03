@@ -133,7 +133,7 @@ describe('useMPlanTimeline', () => {
     expect(result.current.hotelLegs.top?.seg).toBe(out)
     expect(result.current.hotelLegs.bottom?.seg).toBe(back)
     expect(result.current.hotelChips).toEqual([
-      { key: 'stay-71', variant: 'stay', name: 'Hotel Sacher', time: null },
+      { key: 'stay-71', variant: 'stay', name: 'Hotel Sacher', time: null, accId: 71, placeId: null },
     ])
   })
 
