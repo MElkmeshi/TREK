@@ -19,6 +19,7 @@ import { resolveTrackColor, inheritedTrackColor } from '../../../../components/M
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import { safeHttpUrl } from '../../../../utils/safeUrl'
 import { openFile } from '../../../../utils/fileDownload'
+import { filesForPlace } from '../../../../utils/placeFiles'
 import { getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
 import { NavigationMenu } from '../../../../components/shared/NavigationMenu'
 import { getAssignmentReservations } from '../../../../utils/dayMerge'
@@ -151,8 +152,12 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     setParticipantPickerOpen(false)
   }
 
-  const placeFiles = (planner.files || []).filter(f =>
-    !f.deleted_at && (String(f.place_id) === String(place?.id) || (f.linked_place_ids || []).includes(place?.id ?? -1)),
+  // Its own files plus the ones on the bookings that hang on it (#2217).
+  const placeFiles = filesForPlace(
+    planner.files,
+    place?.id,
+    planner.reservations,
+    assignmentInDay ? [assignmentInDay.id] : [],
   )
 
   const handleImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {

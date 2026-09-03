@@ -12,6 +12,7 @@ import PlaceAvatarUpload from '../shared/PlaceAvatarUpload'
 import PlaceRating from '../shared/StarRating'
 import TrackColorPicker from '../shared/TrackColorPicker'
 import { resolveTrackColor, inheritedTrackColor } from '../Map/trackColors'
+import { filesForPlace } from '../../utils/placeFiles'
 import GuestBadge from '../shared/GuestBadge'
 import StatusBadge from '../Collections/StatusBadge'
 import { mapsApi, pluginsApi } from '../../api/client'
@@ -337,7 +338,8 @@ export default function PlaceInspector({
   const selectedDay = days?.find(d => d.id === selectedDayId)
   const weekdayIndex = getWeekdayIndex(selectedDay?.date, placeTimeZone)
 
-  const placeFiles = (files || []).filter(f => String(f.place_id) === String(place.id) || (f.linked_place_ids || []).includes(place.id))
+  // Its own files plus the ones on the bookings that hang on it (#2217).
+  const placeFiles = filesForPlace(files, place.id, reservations, selectedAssignmentId != null ? [selectedAssignmentId] : [])
 
   return (
     <div
