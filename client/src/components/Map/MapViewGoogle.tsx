@@ -98,6 +98,7 @@ export function MapViewGoogle({
           // own tile requests carry 4i256. The GL scheme would open a level out.
           tileSize: TILE_SIZE_RASTER,
         })
+        framedOnMountRef.current = framed !== null
         const initial = framed ?? {
           center: view.center ?? DEFAULT_MAP_CENTER,
           zoom: view.zoom ?? DEFAULT_MAP_ZOOM,
@@ -193,7 +194,15 @@ export function MapViewGoogle({
 
       element.addEventListener('mouseenter', () => {
         infoRef.current?.setContent(buildPlacePopupHtml(place, null))
-        infoRef.current?.open({ map, anchor: marker })
+        // shouldFocus:false is load-bearing, not tidiness. Left unset, Google's
+        // heuristic moves focus into the info window when focus is already inside
+        // the map (which it is once the user has clicked a pin), and on close it
+        // returns focus to the marker. That programmatic focus() runs
+        // scroll-into-view on every overflow:hidden ancestor, shifting the marker
+        // pane and snapping it back — a pin visibly jumping away and returning on
+        // mouse-out. A hover card should never take focus anyway; the GL
+        // renderer's card is not focusable either.
+        infoRef.current?.open({ map, anchor: marker, shouldFocus: false })
       })
       element.addEventListener('mouseleave', () => infoRef.current?.close())
     }
@@ -228,11 +237,28 @@ export function MapViewGoogle({
     }
   }, [ready, route])
 
-  // Re-frame on the same signal the other renderers use.
+  // Re-frame on the same signal the other renderers use: a CHANGE of fitKey, and
+  // nothing else. Both MapView and MapViewGL gate on prevFitKey for a reason —
+  // panning the map makes the planner re-render, which hands this component new
+  // `places`/`dayPlaces` array identities. With those in the dependency list the
+  // camera refitted itself a beat after every pan, throwing the user back to the
+  // trip-wide view they had just navigated away from.
+  const prevFitKey = useRef<number | null | undefined>(-1)
+  const framedOnMountRef = useRef(false)
   useEffect(() => {
     const map = mapRef.current
     const api = apiRef.current
     if (!map || !api || fitKey == null) return
+    if (fitKey === prevFitKey.current) return
+    prevFitKey.current = fitKey
+
+    // Construction already framed the map to these places, so stand down for the
+    // first fitKey; every later one (picking a day) still runs. Same rule as
+    // MapViewGL's framedOnMount.
+    if (framedOnMountRef.current) {
+      framedOnMountRef.current = false
+      return
+    }
 
     const points = (dayPlaces?.length ? dayPlaces : places).filter(p => p.lat != null && p.lng != null)
     if (points.length === 0) return
@@ -240,7 +266,10 @@ export function MapViewGoogle({
     const bounds = new api.LatLngBounds()
     for (const p of points) bounds.extend({ lat: p.lat as number, lng: p.lng as number })
     map.fitBounds(bounds, 48)
-  }, [ready, fitKey, places, dayPlaces])
+    // places/dayPlaces are read, not depended on: a new array identity from a
+    // parent re-render must not re-frame the map.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, fitKey])
 
   if (error) {
     return (
