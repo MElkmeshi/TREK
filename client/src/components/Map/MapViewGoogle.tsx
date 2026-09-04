@@ -7,6 +7,7 @@ import { createMarkerElement } from './placeMarkerElement'
 import { buildPlacePopupHtml } from './placePopup'
 import { usePlacePhotos, placePhotoUrl } from './usePlacePhotos'
 import { toCompassMap } from './googleCompass'
+import { createMarkerLayer, type MarkerLayer } from './googleMarkerLayer'
 
 /**
  * The Google Maps renderer.
@@ -53,7 +54,7 @@ export function MapViewGoogle({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const apiRef = useRef<GoogleMapsApi | null>(null)
-  const markersRef = useRef<Map<number, google.maps.marker.AdvancedMarkerElement>>(new Map())
+  const layerRef = useRef<MarkerLayer | null>(null)
   // What each marker was last drawn from. Assigning marker.content makes Google
   // re-measure and re-place that marker, so rebuilding all of them on every pass
   // is both wasted work and a visible twitch — and this effect runs again on
@@ -107,21 +108,12 @@ export function MapViewGoogle({
         const map = new api.Map(containerRef.current, {
           center: { lat: initial.center[0], lng: initial.center[1] },
           zoom: initial.zoom,
-          // A map id is what enables vector rendering and AdvancedMarkerElement.
-          // DEMO_MAP_ID works without cloud styling, which is what a self-hosted
-          // instance has unless its operator sets one up.
-          // DEMO_MAP_ID renders RASTER. That matters and is not what we would
-          // choose: on a raster map Google moves AdvancedMarkerElement pins with
-          // a coarse transform during a drag and re-projects them precisely on
-          // idle, so every pin visibly jumps about a second after each pan while
-          // the basemap sits still. It also leaves the map without a heading, so
-          // the compass pill has nothing to rotate.
-          //
-          // Requesting RenderingType.VECTOR here does flip getRenderingType() to
-          // VECTOR, but DEMO_MAP_ID has no vector style behind it and the map
-          // then draws nothing at all — so the fix is not a flag, it is a real
-          // Map ID created in the Google Cloud console with vector rendering
-          // enabled, configured per instance. Until then, raster it is.
+          // DEMO_MAP_ID keeps the map on Google's demo styling. It renders
+          // RASTER; vector would need a Map ID created in the Google Cloud
+          // console, which a self-hosted instance cannot assume. The pins do not
+          // depend on it either way — they are drawn by an OverlayView (see
+          // googleMarkerLayer.ts) precisely because raster rendering makes
+          // AdvancedMarkerElement jump after every pan.
           mapId: 'DEMO_MAP_ID',
           disableDefaultUI: true,
           zoomControl: true,
@@ -129,6 +121,7 @@ export function MapViewGoogle({
         })
         mapRef.current = map
         infoRef.current = new api.InfoWindow({ disableAutoPan: true })
+        layerRef.current = createMarkerLayer(api, map)
         setReady(true)
 
         map.addListener('click', (e: google.maps.MapMouseEvent) => {
@@ -147,6 +140,8 @@ export function MapViewGoogle({
     return () => {
       cancelled = true
       setReady(false)
+      layerRef.current?.destroy()
+      layerRef.current = null
       handlersRef.current.onMapReady?.(null)
       mapRef.current = null
     }
@@ -158,6 +153,9 @@ export function MapViewGoogle({
     const map = mapRef.current
     const api = apiRef.current
     if (!map || !api) return
+
+    const layer = layerRef.current
+    if (!layer) return
 
     const seen = new Set<number>()
     for (const place of places) {
@@ -173,56 +171,32 @@ export function MapViewGoogle({
         place.lat, place.lng, photoUrl ?? '', selected,
         orderNumbers?.join('.') ?? '', place.category_id ?? '', place.image_url ?? '',
       ].join('|')
-
-      const existing = markersRef.current.get(place.id)
-      if (existing && markerSigRef.current.get(place.id) === signature) continue
+      if (markerSigRef.current.get(place.id) === signature) continue
       markerSigRef.current.set(place.id, signature)
 
       const element = createMarkerElement(place, photoUrl, orderNumbers, selected)
-
-      // Google anchors an AdvancedMarkerElement by the BOTTOM edge of its content
-      // (it applies translate(-50%, -100%)), but createMarkerElement draws a pin
-      // meant to be anchored at its centre — that is what the GL renderers ask for
-      // with anchor: 'center'. Without this offset every pin sits half its own
-      // height above the place it marks, and shifts again whenever the pin changes
-      // size (selection grows it from 36px to 44px).
-      const content = document.createElement('div')
-      content.style.transform = 'translateY(50%)'
-      content.appendChild(element)
-
-      let marker = existing
-      if (marker) {
-        marker.content = content
-        marker.position = { lat: place.lat, lng: place.lng }
-      } else {
-        marker = new api.marker.AdvancedMarkerElement({
-          map,
-          content,
-          position: { lat: place.lat, lng: place.lng },
-        })
-        marker.addListener('click', () => handlersRef.current.onMarkerClick?.(place.id))
-        markersRef.current.set(place.id, marker)
-      }
-
       element.addEventListener('mouseenter', () => {
-        infoRef.current?.setContent(buildPlacePopupHtml(place, null))
-        // shouldFocus:false is load-bearing, not tidiness. Left unset, Google's
-        // heuristic moves focus into the info window when focus is already inside
-        // the map (which it is once the user has clicked a pin), and on close it
-        // returns focus to the marker. That programmatic focus() runs
-        // scroll-into-view on every overflow:hidden ancestor, shifting the marker
-        // pane and snapping it back — a pin visibly jumping away and returning on
-        // mouse-out. A hover card should never take focus anyway; the GL
-        // renderer's card is not focusable either.
-        infoRef.current?.open({ map, anchor: marker, shouldFocus: false })
+        infoRef.current?.setContent(buildPlacePopupHtml(place, photoUrl))
+        infoRef.current?.setPosition({ lat: place.lat as number, lng: place.lng as number })
+        // shouldFocus:false is load-bearing: left unset, Google's heuristic moves
+        // focus into the info window and hands it back to the anchor on close,
+        // and that focus() scroll-into-view shifts the map's panes.
+        infoRef.current?.open({ map, shouldFocus: false })
       })
       element.addEventListener('mouseleave', () => infoRef.current?.close())
+
+      layer.setPin({
+        id: place.id,
+        lat: place.lat,
+        lng: place.lng,
+        element,
+        onClick: () => handlersRef.current.onMarkerClick?.(place.id),
+      })
     }
 
-    for (const [id, marker] of markersRef.current) {
+    for (const id of layer.ids()) {
       if (seen.has(id)) continue
-      marker.map = null
-      markersRef.current.delete(id)
+      layer.removePin(id)
       markerSigRef.current.delete(id)
     }
   }, [ready, places, selectedPlaceId, dayOrderMap, photoUrls])
