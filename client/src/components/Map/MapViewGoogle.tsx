@@ -5,7 +5,7 @@ import { computeMapViewport, TILE_SIZE_RASTER } from '../../utils/mapViewport'
 import { loadGoogleMaps, type GoogleMapsApi } from './engines/google'
 import { createMarkerElement } from './placeMarkerElement'
 import { buildPlacePopupHtml } from './placePopup'
-import { usePlacePhotos, placePhotoUrl } from './usePlacePhotos'
+import { usePlacePhotos, placePhotoUrl, placePopupPhotoUrl } from './usePlacePhotos'
 import { toCompassMap } from './googleCompass'
 import { createMarkerLayer, type MarkerLayer } from './googleMarkerLayer'
 
@@ -66,6 +66,11 @@ export function MapViewGoogle({
   // Most places carry no image of their own — the pin picture comes from the
   // photo service's cache, which fills in asynchronously.
   const photoUrls = usePlacePhotos(places)
+  // Read at hover time rather than captured when the pin was built: a pin is
+  // only rebuilt when its own thumbnail changes, so a closure here would keep
+  // showing whatever the cache held then.
+  const photoUrlsRef = useRef(photoUrls)
+  photoUrlsRef.current = photoUrls
   // The map is built asynchronously. Without this, the marker/route/fit
   // effects run once against a null map and never again, so a trip opened
   // straight onto the planner drew no pins at all.
@@ -176,7 +181,7 @@ export function MapViewGoogle({
 
       const element = createMarkerElement(place, photoUrl, orderNumbers, selected)
       element.addEventListener('mouseenter', () => {
-        infoRef.current?.setContent(buildPlacePopupHtml(place, photoUrl))
+        infoRef.current?.setContent(buildPlacePopupHtml(place, placePopupPhotoUrl(place, photoUrlsRef.current)))
         infoRef.current?.setPosition({ lat: place.lat as number, lng: place.lng as number })
         // shouldFocus:false is load-bearing: left unset, Google's heuristic moves
         // focus into the info window and hands it back to the anchor on close,

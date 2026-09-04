@@ -88,3 +88,26 @@ export function placePhotoUrl(place: Place, photoUrls: Record<string, string>): 
   const key = photoCacheKey(place)
   return (key && photoUrls[key]) || place.image_url || null
 }
+
+/**
+ * The image for the hover card, which is ~220px wide.
+ *
+ * placePhotoUrl returns what the pin draws, and the photo service downscales
+ * that to 48px so a map full of markers stays cheap — fine inside a 36px circle,
+ * visibly soft blown up in a card. The cache keeps the full-size source
+ * alongside the thumbnail, so prefer that and fall back to the thumbnail only
+ * when there is nothing better.
+ */
+export function placePopupPhotoUrl(place: Place, photoUrls: Record<string, string>): string | null {
+  if (isCustomPlaceImage(place.image_url)) return place.image_url!
+
+  const key = photoCacheKey(place)
+  // Only our own proxy URLs are displayable straight from an <img src> — a bare
+  // provider URL is a fetch seed, not something the card can render.
+  const cachedFull = key ? getCached(key)?.photoUrl : null
+  if (cachedFull?.startsWith('/api/maps/place-photo/')) return cachedFull
+  if (place.image_url?.startsWith('/api/maps/place-photo/')) return place.image_url
+
+  return (key && photoUrls[key]) || null
+}
+
