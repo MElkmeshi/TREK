@@ -110,14 +110,19 @@ export function MapViewGoogle({
           // A map id is what enables vector rendering and AdvancedMarkerElement.
           // DEMO_MAP_ID works without cloud styling, which is what a self-hosted
           // instance has unless its operator sets one up.
+          // DEMO_MAP_ID renders RASTER. That matters and is not what we would
+          // choose: on a raster map Google moves AdvancedMarkerElement pins with
+          // a coarse transform during a drag and re-projects them precisely on
+          // idle, so every pin visibly jumps about a second after each pan while
+          // the basemap sits still. It also leaves the map without a heading, so
+          // the compass pill has nothing to rotate.
+          //
+          // Requesting RenderingType.VECTOR here does flip getRenderingType() to
+          // VECTOR, but DEMO_MAP_ID has no vector style behind it and the map
+          // then draws nothing at all — so the fix is not a flag, it is a real
+          // Map ID created in the Google Cloud console with vector rendering
+          // enabled, configured per instance. Until then, raster it is.
           mapId: 'DEMO_MAP_ID',
-          // Ask for vector explicitly. Without this the map initialises as
-          // RASTER, and on a raster map Google moves AdvancedMarkerElement pins
-          // with a coarse transform during a drag and then re-projects them
-          // precisely on idle — the pins visibly jump a second after every pan
-          // while the basemap sits still. Vector also gives the map a heading,
-          // without which the compass pill has nothing to rotate.
-          renderingType: api.RenderingType.VECTOR,
           disableDefaultUI: true,
           zoomControl: true,
           clickableIcons: false,
