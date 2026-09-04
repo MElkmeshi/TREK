@@ -4,18 +4,14 @@ import { renderIconMarkup } from '../../utils/iconMarkup'
 import type mapboxgl from 'mapbox-gl'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAuthStore } from '../../store/authStore'
-import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
-import { isCustomPlaceImage, photoCacheKey } from './placePhoto'
+import { usePlacePhotos, placePhotoUrl } from './usePlacePhotos'
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from './mapboxSetup'
 import { attachLocationMarker, type LocationMarkerHandle } from './locationMarkerMapbox'
 import { ReservationMapboxOverlay } from './reservationsMapbox'
 import { useTransportRoutes } from '../../hooks/useTransportRoutes'
 import { visibleRouteReservations } from '../../utils/reservationRoutes'
-import { safeHexColor } from '../../utils/safeColor'
 import { createMarkerElement } from './placeMarkerElement'
-import { categoryIconSvg } from './categoryIcon'
-import { escapeHtml } from '@trek/shared'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, basemapLanguage, type GlMapProvider } from './glProviders'
 import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
@@ -368,8 +364,7 @@ export function MapViewGL({
   const isMapLibre = glProvider === 'maplibre-gl'
   const glStyle = styleForActiveProvider(glProvider, rawMapboxStyle, rawMaplibreStyle)
   const enableMapbox3d = !isMapLibre && mapbox3d
-  const placesPhotosEnabled = useAuthStore(s => s.placesPhotosEnabled)
-  const [photoUrls, setPhotoUrls] = useState<Record<string, string>>(getAllThumbs)
+  const photoUrls = usePlacePhotos(places)
   const [mapReady, setMapReady] = useState(false)
   // Hover tooltip — a cursor-following name/category/address card, matching the
   // Leaflet map's overlay exactly (no anchored popup, no photo thumbnail).
@@ -959,62 +954,6 @@ export function MapViewGL({
     try { map.setConfigProperty('basemap', 'language', basemapLanguage(mapLang)) } catch { /* style/SDK may not support the basemap language property */ }
   }, [mapLang, mapReady, isMapLibre, glStyle])
 
-  // Photo loading — mirrors the Leaflet MapView. Updates via RAF to batch
-  // simultaneous thumb arrivals into one re-render.
-  const pendingThumbsRef = useRef<Record<string, string>>({})
-  const thumbRafRef = useRef<number | null>(null)
-  const placeIds = useMemo(() => places.map(p => p.id).join(','), [places])
-  useEffect(() => {
-    if (!places || places.length === 0 || !placesPhotosEnabled) return
-    const cleanups: (() => void)[] = []
-
-    const setThumb = (cacheKey: string, thumb: string) => {
-      pendingThumbsRef.current[cacheKey] = thumb
-      if (thumbRafRef.current !== null) return
-      thumbRafRef.current = requestAnimationFrame(() => {
-        thumbRafRef.current = null
-        const pending = pendingThumbsRef.current
-        pendingThumbsRef.current = {}
-        setPhotoUrls(prev => {
-          const hasChange = Object.entries(pending).some(([k, v]) => prev[k] !== v)
-          return hasChange ? { ...prev, ...pending } : prev
-        })
-      })
-    }
-
-    for (const place of places) {
-      // A custom uploaded image is shown directly — never auto-fetch a provider
-      // photo for it (that request would 404 for OSM-only places and, worse, the
-      // fetched thumb would shadow the user's own image). (#1136)
-      if (isCustomPlaceImage(place.image_url)) continue
-      const cacheKey = photoCacheKey(place)
-      if (!cacheKey) continue
-      const cached = getCached(cacheKey)
-      if (cached?.thumbDataUrl) {
-        setThumb(cacheKey, cached.thumbDataUrl)
-        continue
-      }
-      cleanups.push(onThumbReady(cacheKey, thumb => setThumb(cacheKey, thumb)))
-      if (!cached && !isLoading(cacheKey)) {
-        const photoId =
-          (place.image_url?.startsWith('/api/maps/place-photo/') ? place.image_url : null)
-          || place.google_place_id
-          || place.osm_id
-          || place.image_url
-        if (photoId || (place.lat && place.lng)) {
-          fetchPhoto(cacheKey, photoId || `coords:${place.lat}:${place.lng}`, place.lat, place.lng, place.name)
-        }
-      }
-    }
-
-    return () => {
-      cleanups.forEach(fn => fn())
-      if (thumbRafRef.current !== null) {
-        cancelAnimationFrame(thumbRafRef.current)
-        thumbRafRef.current = null
-      }
-    }
-  }, [placeIds, placesPhotosEnabled]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Reconcile markers with places + photos. The clustered GeoJSON source decides
   // which points are currently unclustered, and we render the existing rich HTML
@@ -1044,9 +983,8 @@ export function MapViewGL({
 
       visiblePlaces.forEach(place => {
         const orderNumbers = dayOrderMap[place.id] ?? null
-        const pck = photoCacheKey(place)
         // A custom image wins over the auto-fetched thumb; otherwise fall back to it.
-        const photoUrl = isCustomPlaceImage(place.image_url) ? place.image_url! : ((pck && photoUrls[pck]) || place.image_url || null)
+        const photoUrl = placePhotoUrl(place, photoUrls)
         const selected = place.id === selectedPlaceId
         const el = createMarkerElement(place as Place & { category_color?: string; category_icon?: string }, photoUrl, orderNumbers, selected)
         // Drag onto a day in the plan (#891). Markers are rebuilt from scratch

@@ -5,6 +5,7 @@ import { computeMapViewport, TILE_SIZE_RASTER } from '../../utils/mapViewport'
 import { loadGoogleMaps, type GoogleMapsApi } from './engines/google'
 import { createMarkerElement } from './placeMarkerElement'
 import { buildPlacePopupHtml } from './placePopup'
+import { usePlacePhotos, placePhotoUrl } from './usePlacePhotos'
 import { toCompassMap } from './googleCompass'
 
 /**
@@ -56,6 +57,9 @@ export function MapViewGoogle({
   const linesRef = useRef<google.maps.Polyline[]>([])
   const infoRef = useRef<google.maps.InfoWindow | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Most places carry no image of their own — the pin picture comes from the
+  // photo service's cache, which fills in asynchronously.
+  const photoUrls = usePlacePhotos(places)
   // The map is built asynchronously. Without this, the marker/route/fit
   // effects run once against a null map and never again, so a trip opened
   // straight onto the planner drew no pins at all.
@@ -143,16 +147,27 @@ export function MapViewGoogle({
       seen.add(place.id)
       const orderNumbers = dayOrderMap?.[place.id] ?? null
       const selected = selectedPlaceId === place.id
-      const element = createMarkerElement(place, null, orderNumbers, selected)
+      const photoUrl = placePhotoUrl(place, photoUrls)
+      const element = createMarkerElement(place, photoUrl, orderNumbers, selected)
+
+      // Google anchors an AdvancedMarkerElement by the BOTTOM edge of its content
+      // (it applies translate(-50%, -100%)), but createMarkerElement draws a pin
+      // meant to be anchored at its centre — that is what the GL renderers ask for
+      // with anchor: 'center'. Without this offset every pin sits half its own
+      // height above the place it marks, and shifts again whenever the pin changes
+      // size (selection grows it from 36px to 44px).
+      const content = document.createElement('div')
+      content.style.transform = 'translateY(50%)'
+      content.appendChild(element)
 
       let marker = markersRef.current.get(place.id)
       if (marker) {
-        marker.content = element
+        marker.content = content
         marker.position = { lat: place.lat, lng: place.lng }
       } else {
         marker = new api.marker.AdvancedMarkerElement({
           map,
-          content: element,
+          content,
           position: { lat: place.lat, lng: place.lng },
         })
         marker.addListener('click', () => handlersRef.current.onMarkerClick?.(place.id))
@@ -171,7 +186,7 @@ export function MapViewGoogle({
       marker.map = null
       markersRef.current.delete(id)
     }
-  }, [ready, places, selectedPlaceId, dayOrderMap])
+  }, [ready, places, selectedPlaceId, dayOrderMap, photoUrls])
 
   // Day route.
   useEffect(() => {
