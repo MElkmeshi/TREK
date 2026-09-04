@@ -54,6 +54,11 @@ export function MapViewGoogle({
   const mapRef = useRef<google.maps.Map | null>(null)
   const apiRef = useRef<GoogleMapsApi | null>(null)
   const markersRef = useRef<Map<number, google.maps.marker.AdvancedMarkerElement>>(new Map())
+  // What each marker was last drawn from. Assigning marker.content makes Google
+  // re-measure and re-place that marker, so rebuilding all of them on every pass
+  // is both wasted work and a visible twitch — and this effect runs again on
+  // every thumbnail arrival, which for a 34-place trip is a lot of passes.
+  const markerSigRef = useRef<Map<number, string>>(new Map())
   const linesRef = useRef<google.maps.Polyline[]>([])
   const infoRef = useRef<google.maps.InfoWindow | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -148,6 +153,18 @@ export function MapViewGoogle({
       const orderNumbers = dayOrderMap?.[place.id] ?? null
       const selected = selectedPlaceId === place.id
       const photoUrl = placePhotoUrl(place, photoUrls)
+
+      // Everything createMarkerElement draws from. Unchanged signature → the pin
+      // on screen is already correct, so leave it alone.
+      const signature = [
+        place.lat, place.lng, photoUrl ?? '', selected,
+        orderNumbers?.join('.') ?? '', place.category_id ?? '', place.image_url ?? '',
+      ].join('|')
+
+      const existing = markersRef.current.get(place.id)
+      if (existing && markerSigRef.current.get(place.id) === signature) continue
+      markerSigRef.current.set(place.id, signature)
+
       const element = createMarkerElement(place, photoUrl, orderNumbers, selected)
 
       // Google anchors an AdvancedMarkerElement by the BOTTOM edge of its content
@@ -160,7 +177,7 @@ export function MapViewGoogle({
       content.style.transform = 'translateY(50%)'
       content.appendChild(element)
 
-      let marker = markersRef.current.get(place.id)
+      let marker = existing
       if (marker) {
         marker.content = content
         marker.position = { lat: place.lat, lng: place.lng }
@@ -185,6 +202,7 @@ export function MapViewGoogle({
       if (seen.has(id)) continue
       marker.map = null
       markersRef.current.delete(id)
+      markerSigRef.current.delete(id)
     }
   }, [ready, places, selectedPlaceId, dayOrderMap, photoUrls])
 
