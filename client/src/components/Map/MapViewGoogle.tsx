@@ -111,6 +111,13 @@ export function MapViewGoogle({
           // DEMO_MAP_ID works without cloud styling, which is what a self-hosted
           // instance has unless its operator sets one up.
           mapId: 'DEMO_MAP_ID',
+          // Ask for vector explicitly. Without this the map initialises as
+          // RASTER, and on a raster map Google moves AdvancedMarkerElement pins
+          // with a coarse transform during a drag and then re-projects them
+          // precisely on idle — the pins visibly jump a second after every pan
+          // while the basemap sits still. Vector also gives the map a heading,
+          // without which the compass pill has nothing to rotate.
+          renderingType: api.RenderingType.VECTOR,
           disableDefaultUI: true,
           zoomControl: true,
           clickableIcons: false,

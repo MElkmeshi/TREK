@@ -21,6 +21,7 @@ export interface GoogleMapsApi {
   InfoWindow: typeof google.maps.InfoWindow
   Polyline: typeof google.maps.Polyline
   marker: typeof google.maps.marker
+  RenderingType: typeof google.maps.RenderingType
 }
 
 let pending: Promise<GoogleMapsApi> | null = null
@@ -77,6 +78,7 @@ export function loadGoogleMaps(apiKey: string, language?: string): Promise<Googl
         InfoWindow: google.maps.InfoWindow,
         Polyline: google.maps.Polyline,
         marker: google.maps.marker,
+        RenderingType: google.maps.RenderingType,
       })
     }
 
