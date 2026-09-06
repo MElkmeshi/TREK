@@ -75,9 +75,14 @@ export function isManagedBlocked(env: RuntimeEnvService): boolean {
  * and it is the operator's for one more reason: the key is registered to
  * whoever runs the instance, and CARTO's terms hold that account answerable for
  * the tiles it fetches.
+ *
+ * google_maps_api_key belongs here for that reason at its sharpest: Google
+ * bills the operator's account per map load, so a per-user key would let one
+ * member spend on somebody else's behalf — or, saved blank, break their map.
  */
 export const MANAGED_LOCKED_SETTING_KEYS = [
   'carto_api_key',
+  'google_maps_api_key',
   'llm_api_key',
   'llm_base_url',
   'llm_model',
